@@ -23,12 +23,22 @@ namespace Tristeon
 		* Removes item t from the vector
 		*/
 		void remove(_Ty t);
+		/**
+		 * Removes the item at i from the vector
+		 */
+		void removeAt(size_t i);
 	};
 
 	template <class _Ty, class _Alloc>
 	void vector<_Ty, _Alloc>::remove(_Ty t)
 	{
 		base::erase(std::remove(base::begin(), base::end(), t), base::end());
+	}
+
+	template <class _Ty, class _Alloc>
+	void vector<_Ty, _Alloc>::removeAt(size_t i)
+	{
+		base::erase(base::begin() + i);
 	}
 
 	template <class _Ty, class _Alloc>

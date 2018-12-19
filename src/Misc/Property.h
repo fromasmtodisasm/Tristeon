@@ -20,6 +20,10 @@ public:
 	void set(T value) { (m_instance->*m_setter)(value); }
 	RWProperty<C, T>& operator=(T value) { (this->m_instance->*this->m_setter)(value); return *this; }
 
+	template<typename P>
+	bool operator==(const P& other) { return get() == other; }
+	template<typename P>
+	bool operator!=(const P& other) { return get() != other; }
 private:
 	C* const m_instance;
 	const Getter_t m_getter;
@@ -43,6 +47,11 @@ public:
 	T get() { return (m_instance->*m_getter)(); }
 	operator T() const { return (this->m_instance->*this->m_getter)(); }
 
+
+	template<typename P>
+	bool operator==(const P& other) { return get() == other; }
+	template<typename P>
+	bool operator!=(const P& other) { return get() != other; }
 private:
 	C* const m_instance;
 	const Getter_t m_getter;
@@ -60,6 +69,10 @@ public:
 	T get() { return value; }
 	operator T() const { return value; }
 
+	template<typename P>
+	bool operator==(const P& other) { return get() == other; }
+	template<typename P>
+	bool operator!=(const P& other) { return get() != other; }
 private:
 	T value;
 };
@@ -73,6 +86,10 @@ public:
 	void set(T value) { this.value = value; }
 	operator T() const { return value; }
 
+	template<typename P>
+	bool operator==(const P& other) { return get() == other; }
+	template<typename P>
+	bool operator!=(const P& other) { return get() != other; }
 private:
 	T value;
 };
@@ -94,6 +111,10 @@ public:
 	void set(T value) { (m_instance->*m_setter)(value); }
 	RWProperty<C, T>& operator=(T value) { (this->m_instance->*this->m_setter)(value); return *this; }
 
+	template<typename P>
+	bool operator==(const P& other) = delete;
+	template<typename P>
+	bool operator!=(const P& other) = delete;
 private:
 	C* const m_instance;
 	const Setter_t m_setter;
