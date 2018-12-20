@@ -1,14 +1,10 @@
 ﻿#include "RenderManager.h"
-#include "Core/MessageBus.h"
-#include "Core/GameObject.h"
-#include "Core/Message.h"
-#include <Core/Components/Camera.h>
 #include <Core/Rendering/Components/Renderer.h>
-#include <Misc/Console.h>
-
+#include <Core/Message.h>
+#include <Core/MessageBus.h>
+#include <Core/Components/Camera.h>
 #include <boost/filesystem.hpp>
-#include "Core/BindingData.h"
-namespace filesystem = boost::filesystem;
+#include "Graphics.h"
 
 namespace Tristeon
 {
@@ -16,129 +12,163 @@ namespace Tristeon
 	{
 		namespace Rendering
 		{
-			RenderManager* RenderManager::instance;
-
 			RenderManager::RenderManager()
 			{
-				//Store instance
-				instance = this;
-
-				//Render
 				MessageBus::subscribeToMessage(MT_RENDER, [&](Message msg) { render(); });
-
-				//(De)registering of render components
-				MessageBus::subscribeToMessage(MT_RENDERINGCOMPONENT_REGISTER, [&](Message msg) { registerRenderer(msg); });
-				MessageBus::subscribeToMessage(MT_RENDERINGCOMPONENT_DEREGISTER, [&](Message msg) { deregisterRenderer(msg); });
-
-				//(De)registering of cameras
-				MessageBus::subscribeToMessage(MT_CAMERA_REGISTER, [&](Message msg) { registerCamera(msg); });
-				MessageBus::subscribeToMessage(MT_CAMERA_DEREGISTER, [&](Message msg) { deregisterCamera(msg); });
-
-				//Game logic
+				MessageBus::subscribeToMessage(MT_RENDERINGCOMPONENT_REGISTER, [&](Message msg) { registerObject(dynamic_cast<Renderer*>(msg.userData)); });
+				MessageBus::subscribeToMessage(MT_RENDERINGCOMPONENT_DEREGISTER, [&](Message msg) { deregisterObject(dynamic_cast<Renderer*>(msg.userData)); });
+				MessageBus::subscribeToMessage(MT_CAMERA_REGISTER, [&](Message msg) { registerObject(dynamic_cast<Components::Camera*>(msg.userData)); });
+				MessageBus::subscribeToMessage(MT_CAMERA_DEREGISTER, [&](Message msg) { deregisterObject(dynamic_cast<Components::Camera*>(msg.userData)); });
 				MessageBus::subscribeToMessage(MT_GAME_LOGIC_START, [&](Message msg) { inPlayMode = true; });
 				MessageBus::subscribeToMessage(MT_GAME_LOGIC_STOP, [&](Message msg) { inPlayMode = false; });
-			}
 
-			std::vector<Renderer*> RenderManager::getRenderers() const
-			{
-				return renderers;
-			}
-
-			TObject* RenderManager::registerRenderer(Message msg)
-			{
-				//Confirm that we're getting useful data
-				Misc::Console::t_assert(msg.userData != nullptr, "Trying to register null renderer!");
-
-				//Check if renderer
-				Renderer* r = dynamic_cast<Renderer*>(msg.userData);
-				if (r != nullptr)
+				MessageBus::subscribeToMessage(MT_WINDOW_RESIZE, [&](Message msg)
 				{
-					//Successfully found a renderer
-					renderers.push_back(r);
-					//Init
-					r->initInternalRenderer();
-					return r;
-				}
-				else
-				{
-					//Try to get a UI renderable instead
-					UIRenderable* rable = dynamic_cast<UIRenderable*>(msg.userData);
-					Misc::Console::t_assert(rable != nullptr, "Couldn't cast userdata to renderer or ui renderable in registerRenderer()!");
-					renderables.push_back(rable);
+					Math::Vector2* vec = dynamic_cast<Math::Vector2*>(msg.userData);
+					resizeWindow(static_cast<int>(vec->x), static_cast<int>(vec->y));
+				});
 
-					return rable;
-				}
+				Graphics::renderer = this;
 			}
 
-			TObject* RenderManager::deregisterRenderer(Message msg)
+			RenderManager::~RenderManager()
 			{
-				//Confirm that we're getting useful data
-				Misc::Console::t_assert(msg.userData != nullptr, "Trying to deregister null renderer!");
-
-				//Check if the given userdata is a renderer, if so, remove from our list
-				Renderer* r = dynamic_cast<Renderer*>(msg.userData);
-				if (r != nullptr)
-					renderers.remove(r);
-				else
-				{
-					//Check if the given userdata is a UIRenderable instead
-					UIRenderable* rable = dynamic_cast<UIRenderable*>(msg.userData);
-					Misc::Console::t_assert(rable != nullptr, "Couldn't cast userdata to renderer or ui renderable in deregisterRenderer()!");
-					renderables.remove(rable);
-				}
-
-				return msg.userData;
+				Graphics::renderer = nullptr;
 			}
 
-			Components::Camera* RenderManager::registerCamera(Message msg)
+			MaterialData* RenderManager::getMaterialData(Material* material)
 			{
-				//Confirm that we're getting useful data
-				Misc::Console::t_assert(msg.userData != nullptr, "Trying to register null camera!");
+				if (material == nullptr)
+					throw std::invalid_argument("Trying to get material data for a null material!");
 
-				//Try to cast to camera, add to our list if successful
-				Components::Camera* cam = dynamic_cast<Components::Camera*>(msg.userData);
-				Misc::Console::t_assert(cam != nullptr, "Couldn't cast userdata to camera (registerCamera())!");
-				cameras.push_back(cam);
-				return cam;
-			}
+				auto const it = find_if(materials.begin(), materials.end(), [&](std::unique_ptr<MaterialData>& i) { return i->material.get() == material; });
+				if (it != materials.end())
+					return it->get();
 
-			Components::Camera* RenderManager::deregisterCamera(Message msg)
-			{
-				//Confirm that we're getting useful data
-				Misc::Console::t_assert(msg.userData != nullptr, "Trying to deregister null camera!");
-
-				//Try to cast to camera, remove from our list if successful
-				Components::Camera* cam = dynamic_cast<Components::Camera*>(msg.userData);
-				Misc::Console::t_assert(cam != nullptr, "Couldn't cast userdata to camera (deregisterCamera())!");
-				cameras.remove(cam);
-				return cam;
-			}
-
-			void RenderManager::setGridEnabled(bool enable)
-			{
-				this->gridEnabled = enable;
+				throw std::runtime_error("Couldn't find the requested material data! This shouldn't ever happen unless if the material has been obtained outside of RenderManager!");
 			}
 
 			Material* RenderManager::getMaterial(std::string filePath)
 			{
-				return instance->getmaterial(filePath);
+				if (!exists(boost::filesystem::path(filePath)))
+					return nullptr;
+
+				auto const it = find_if(materials.begin(), materials.end(), [&](std::unique_ptr<MaterialData>& i) { return i->materialPath == filePath; });
+				if (it != materials.end())
+					return it->get()->material.get();
+
+				std::unique_ptr<Material> material = move(createMaterial(filePath));
+				std::unique_ptr<MaterialData> data = move(createMaterialData(move(material)));
+				materials.push_back(move(data));
+				materialsDirty = true;
+				return material.get();
 			}
 
-			Skybox* RenderManager::getSkybox(std::string filePath)
+			void RenderManager::updateShader(ShaderFile file)
 			{
-				//Try to return the material from our batched materials
-				if (instance->skyboxes.find(filePath) != instance->skyboxes.end())
-					return instance->skyboxes[filePath].get(); //We keep ownership, give the user a reference
+				for (int i = 0; i < materials.size(); ++i)
+				{
+					recompileShader(file);
 
-				//Don't even bother doing anything if the material doesn't exist
-				if (!filesystem::exists(filePath))
-					return nullptr;
+					//TODO: Uncomment and friend
+					//if (materials[i]->material->shaderFilePath == file.getPath())
+					//{
+					//	materials[i]->material->updateShader(); //Redundant?
+					//	materials[i]->material->updateProperties(true); //Should be one call perhaps?
+					//}
+				}
+			}
 
-				//Our materials can only be .mat files
-				if (filesystem::path(filePath).extension() != ".skybox")
-					return nullptr;
+			void RenderManager::registerObject(Components::Camera* camera)
+			{
+				Misc::Console::t_assert(camera != nullptr, "Trying to register a null camera!");
 
-				return instance->_getSkybox(filePath);
+				cameras.push_back(move(createCameraData(camera)));
+			}
+
+			void RenderManager::deregisterObject(Components::Camera* camera)
+			{
+				Misc::Console::t_assert(camera != nullptr, "Trying to deregister a null camera!");
+
+				for (size_t i = cameras.size(); i > 0; i--)
+				{
+					if (cameras[i]->camera == camera)
+					{
+						cameras.erase(cameras.begin() + i);
+						break;
+					}
+				}
+			}
+
+			void RenderManager::registerObject(Renderer* renderer)
+			{
+				Misc::Console::t_assert(renderer != nullptr, "Trying to register a null renderer!");
+
+				if (renderer->material != nullptr)
+				{
+					MaterialData* material = getMaterialData(renderer->material);
+					material->renderers.push_back(renderer);
+				}
+				else
+				{
+					looseRenderers.push_back(renderer);
+				}
+
+				renderer->initInternalRenderer(); //TODO: Move to Renderer::init()?
+			}
+
+			void RenderManager::deregisterObject(Renderer* renderer)
+			{
+				Misc::Console::t_assert(renderer != nullptr, "Trying to deregister a null renderer!");
+
+				if (renderer->material != nullptr)
+				{
+					MaterialData* data = getMaterialData(renderer->material);
+					data->renderers.remove(renderer);
+				}
+				else
+				{
+					looseRenderers.remove(renderer);
+				}
+			}
+
+			void RenderManager::render()
+			{
+				onPreRender();
+
+				if (materialsDirty)
+				{
+					sort(materials.begin(), materials.end(), [&](const std::unique_ptr<MaterialData>& a, const std::unique_ptr<MaterialData>& b)
+					{
+						return a->material->renderQueue < b->material->renderQueue;
+					});
+					materialsDirty = false;
+				}
+
+				for (size_t i = 0; i < cameras.size(); i++)
+				{
+					CameraData* camera = cameras[i].get();
+					camera->onPreRender();
+
+					//Renderers without material get renderered separately
+					for(size_t j = 0; j < looseRenderers.size(); j++)
+						looseRenderers[j]->render();
+
+					for (size_t j = 0; j < materials.size(); j++)
+					{
+						MaterialData* material = materials[i].get();
+						material->bind();
+						
+						for (size_t k = 0; k < material->renderers.size(); k++)
+							material->renderers[i]->render(); //Renderer manages its own transform
+
+						material->unBind();
+					}
+
+					camera->onPostRender();
+				}
+
+				onPostRender();
 			}
 		}
 	}

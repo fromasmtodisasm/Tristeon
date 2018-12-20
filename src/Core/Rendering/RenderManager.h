@@ -1,155 +1,127 @@
 ﻿#pragma once
-#include "Misc/Delegate.h"
-#include "Misc/vector.h"
-#include "Skybox.h"
-#include "API/WindowContext.h"
-#include "Core/Rendering/ShaderFile.h"
+#include <Misc/vector.h>
+#include <Core/Rendering/ShaderFile.h>
+#include <Core/TObject.h>
 
 namespace Tristeon
 {
 	namespace Core
 	{
-		class BindingData;
-		class Message;
 		namespace Components { class Camera; }
-
 		namespace Rendering
 		{
+			class Renderer; 
 			class Material;
-			class RenderTechnique;
-			class Renderer;
 
 			/**
-			 * \brief UIRenderable is a struct that's used to render UI after the scene has been rendered.
+			 * Base class for containing / using camera data and logic. 
+			 * Intended to be inherited by API specific classes.
 			 */
-			struct UIRenderable : TObject
+			class CameraData : public TObject
 			{
+			public:
+				CameraData() = default;
+				virtual ~CameraData() = default;
+				explicit CameraData(Components::Camera* pCamera) : camera(pCamera) { }
+
 				/**
-				 * \brief UIRenderable.data is used by API specific renderers to store rendering information that should be sent to the user
+				 * Called before the scene is rendered. Used to prepare the API for rendering, and to pass camera data to the GPU.
 				 */
-				TObject* data;
+				virtual void onPreRender() = 0;
 				/**
-				 * \brief Subscribe to this function to implement your render function.
+				 * Called after the scene is rendered. Used to allow the API to finish anything related to the camera
 				 */
-				Misc::Delegate<> onRender;
+				virtual void onPostRender() = 0;
+
+				Components::Camera* camera = nullptr;
 			};
 
 			/**
-			 * \brief RenderManager is the base class of RenderManagers and gets overriden to define API specific behavior.
-			 * This class defines standard behavior for (de)registering (ui)renderers, and it manages materials and shaders.
+			 * Base class for containing / using material data and logic.
+			 * Intended to be inherited by API specific classes
 			 */
+			class MaterialData : public TObject
+			{
+			public:
+				MaterialData() = default;
+				virtual ~MaterialData() = default;
+				explicit MaterialData(std::unique_ptr<Material> pMaterial) {
+					material = move(pMaterial);
+				}
+
+				/**
+				 * Called before objects with this material are rendered. Used to send material data (textures, parameters, etc) to the GPU.
+				 */
+				virtual void bind() = 0;
+				/**
+				 * Called after the objects with this material have been rendered. Used to allow the material to clean up any data / renderstate it might've set.
+				 */
+				virtual void unBind() = 0;
+
+				std::unique_ptr<Material> material = nullptr;
+				std::string materialPath = "";
+				vector<Renderer*> renderers;
+			};
+
 			class RenderManager
 			{
 			public:
+				/**
+				 * Registers the rendermanager to the MessageBus callbacks
+				 */
 				RenderManager();
-
+				virtual ~RenderManager();
 				/**
-				 * \brief Render is an abstract function that is intended to be defined by API specific subclasses. It gets called in the window MT_RENDER callback.
+				 * Gets the material that's at the given filepath. 
+				 * Returns a cached value unless if the material hadn't been loaded in before.
+				 * \return The material object if found
+				 * \return nullptr if the material wasn't found
 				 */
-				virtual void render() = 0;
+				Material* getMaterial(std::string filePath);
 
 				/**
-				 * \brief Gets all the registered renderers and returns them as a vector/list
-				 * \return Returns the renderers as a std::vector
+				 * Reflects the shader and populates ShaderFile::properties of the given file.
+				 * ShaderFile::properties will be empty if the compilation or reflection failed.
 				 */
-				std::vector<Renderer*> getRenderers() const;
+				virtual void reflectShader(ShaderFile& file) = 0;
 
-				/**
-				 * \brief Enables/Disables the grid based on the given parameter. The grid is automatically disabled in play mode.
-				 * \param enable Defines wether or not the grid should be enabled (true/false)
-				 */
-				virtual void setGridEnabled(bool enable);
-
-				static void recompileShader(std::string filePath) { instance->_recompileShader(filePath); }
-
-				/**
-				* \brief Returns a material serialized from the given filepath
-				* \param filePath The filepath of the material
-				* \return A material serialized from the given filepath, or from the cached materials
-				*/
-				static Material* getMaterial(std::string filePath);
-
-				static Skybox* getSkybox(std::string filePath);
+				void setMaterialsDirty() { materialsDirty = true; }
 			protected:
-				virtual Skybox* _getSkybox(std::string filePath) = 0;
-				virtual void _recompileShader(std::string filePath) = 0;
+				/**
+				 * Gets the material data that's linked to the given material. 
+				 * Returns nullptr if the material isn't known
+				 * \exception invalid_argument Material is null
+				 * \exception runtime_error Linked material data wasn't found
+				 * \return A MaterialData object where MaterialData::material == material
+				 */
+				MaterialData* getMaterialData(Material* material);
+				/**
+				 * Recompiles the shader and updates every material and its properties
+				 */
+				void updateShader(ShaderFile file);
+				virtual void recompileShader(ShaderFile shader) = 0;
+				virtual std::unique_ptr<CameraData> createCameraData(Components::Camera* camera) = 0;
+				virtual std::unique_ptr<MaterialData> createMaterialData(std::unique_ptr<Material> material) = 0;
+				virtual std::unique_ptr<Material> createMaterial(std::string filePath) = 0;
+				
+				virtual void resizeWindow(int w, int h) = 0;
 
-				/**
-				* \brief Returns a material serialized from the given filepath
-				* \param filePath The filepath of the material
-				* \return A material serialized from the given filepath, or from the cached materials
-				*/
-				virtual Material* getmaterial(std::string filePath) = 0;
+				virtual void onPreRender() = 0;
+				virtual void onPostRender() = 0;
 
-				/**
-				 * \brief Registers a renderer to the renderers or UIrenderers list.
-				 * \param msg The message coming from the manager protocol message system. Message.userData is expected to contain our renderer
-				 */
-				virtual TObject* registerRenderer(Message msg);
-				/**
-				 * \brief Deregisters a renderer from the renderers or UIRenderers list.
-				 * \param msg The message coming from the manager protocol message system. Message.userData is expected to contain our renderer
-				 */
-				virtual TObject* deregisterRenderer(Message msg);
+				vector<std::unique_ptr<CameraData>> cameras;
+				vector<std::unique_ptr<MaterialData>> materials;
+				vector<Renderer*> looseRenderers;	
 
-				/**
-				 * \brief Registers a camera to the camera list.
-				 * \param msg The message coming from the manager protocol message system. Message.userData is expected to contain our camera
-				 * \return Returns the newly aded camera. the result of this function is used by inherited classes to know what camera has been added.
-				 */
-				virtual Components::Camera* registerCamera(Message msg);
-				/**
-				* \brief Deregisters a camera from the camera list.
-				* \param msg The message coming from the manager protocol message system. Message.userData is expected to contain our camera
-				* \return Returns the removed camera. the result of this function is used by inherited classes to know what camera has been added.
-				*/
-				virtual Components::Camera* deregisterCamera(Message msg);
+				bool inPlayMode = true;
+			private:
+				void registerObject(Renderer* renderer);
+				void deregisterObject(Renderer* renderer);
+				void registerObject(Components::Camera* camera);
+				void deregisterObject(Components::Camera* camera);
+				void render();
 
-				/**
-				 * \brief The renderTechnique renders the cameras and the scene.
-				 */
-				RenderTechnique* technique = nullptr;
-
-				/**
-				 * \brief The cameras in the current active scene
-				 */
-				vector<Components::Camera*> cameras;
-
-				/**
-				 * \brief The renderers int he current active scene
-				 */
-				Tristeon::vector<Renderer*> renderers;
-				/**
-				 * \brief All the UIrenderables
-				 */
-				Tristeon::vector<UIRenderable*> renderables;
-				/**
-				 * \brief All the materials in the project, sorted by their ID
-				 */
-				std::map<std::string, Material*> materials;
-
-				std::map < std::string, std::unique_ptr<Skybox>> skyboxes;
-
-				/**
-				 * \brief All the shaderfiles in the project
-				 */
-				std::vector<ShaderFile> shaderFiles;
-
-				/**
-				 * \brief Keeps track of wether the engine is in playmode or not.
-				 */
-				bool inPlayMode = false;
-				/**
-				 * \brief Keeps track of wether the grid should be rendered or not.
-				 */
-				bool gridEnabled = true;
-
-				std::unique_ptr<WindowContext> windowContext;
-
-				/**
-				 * \brief The only instance of RenderManager ever. Used so that getMaterial() can access local variables
-				 */
-				static RenderManager* instance;
+				bool materialsDirty = false;
 			};
 		}
 	}
