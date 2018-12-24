@@ -1,4 +1,6 @@
 ﻿#pragma once
+
+/*
 #include "Core/Rendering/Skybox.h"
 #include "MaterialVulkan.h"
 #include "RenderManagerVulkan.h"
@@ -71,3 +73,5 @@ namespace Tristeon
 		}
 	}
 }
+
+*/

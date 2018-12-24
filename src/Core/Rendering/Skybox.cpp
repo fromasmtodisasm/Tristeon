@@ -2,6 +2,7 @@
 #include <Data/Mesh.h>
 #include <Data/MeshBatch.h>
 #include <XPlatform/typename.h>
+#include <Core/Rendering/Vulkan/InternalSkyboxRendererVulkan.h>
 
 namespace Tristeon
 {
@@ -36,7 +37,7 @@ namespace Tristeon
 
 			void Skybox::initInternalRenderer()
 			{
-				//TODO: internalRenderer = std::make_unique<Vulkan::InternalSkyboxRenderer>();
+				_internalRenderer = std::make_unique<Vulkan::InternalSkyboxRenderer>(this);
 			}
 		}
 	}

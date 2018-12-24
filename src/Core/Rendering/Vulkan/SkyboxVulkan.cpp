@@ -1,4 +1,5 @@
-﻿#include "SkyboxVulkan.h"
+﻿/*
+#include "SkyboxVulkan.h"
 
 #include <gli/texture_cube.hpp>
 #include <gli/core/load.inl>
@@ -291,3 +292,4 @@ namespace Tristeon
 		}
 	}
 }
+*/
