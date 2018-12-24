@@ -25,7 +25,7 @@ namespace Tristeon
 			class InternalRenderer : public TObject
 			{
 			public:
-				InternalRenderer(Renderer* pOwner);
+				explicit InternalRenderer(Renderer* pOwner);
 				virtual void render() = 0;
 				virtual void onMeshChange(Data::SubMesh mesh) {}
 			private:
