@@ -12,7 +12,7 @@ namespace Tristeon
 		namespace Rendering
 		{
 			/**
-			 * \brief Window manages the creation and destruction of a GLFW window. 
+			 * Window manages the creation and destruction of a GLFW window. 
 			 * Window provides a few virtual functions to allow rendering API specific behavior to be defined in inherited window classes.
 			 * Window provides a basic API to read and control window functionality, like changing size, position, window mode, etc.
 			 */
@@ -23,16 +23,16 @@ namespace Tristeon
 				friend std::unique_ptr<Window>::deleter_type;
 			public:
 				/**
-				* \brief [READONLY] The width of the window in pixels. 
+				* [READONLY] The width of the window in pixels. 
 				*/
 				SimpleReadOnlyProperty(Window, width, int);
 				
 				/**
-				* \brief [READONLY] The height of the window in pixels.
+				* [READONLY] The height of the window in pixels.
 				*/
 				SimpleReadOnlyProperty(Window, height, int);
 				/**
-				 * \brief [READONLY] The GLFWWindow. Can be used in a variety of glfw calls. See the GLFW API: http://www.glfw.org/docs/latest/
+				 * [READONLY] The GLFWWindow. Can be used in a variety of glfw calls. See the GLFW API: http://www.glfw.org/docs/latest/
 				 */
 				SimpleReadOnlyProperty(Window, window, GLFWwindow*);
 

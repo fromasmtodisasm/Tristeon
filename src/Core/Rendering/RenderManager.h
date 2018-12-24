@@ -85,7 +85,18 @@ namespace Tristeon
 				 */
 				virtual void reflectShader(ShaderFile& file) = 0;
 
+				/**
+				 * Sets the materialsDirty flag. Which forces materials to be re-sorted based on their renderqueue.
+				 */
 				void setMaterialsDirty() { materialsDirty = true; }
+
+				/**
+				 * Re-adds the given renderer to the correct material queue.
+				 * \exception invalid_argument The passed renderer is null
+				 * \exception runtime_error Couldn't find material data for oldMat
+				 * \exception runtime_error Couldn't find material data for newMat
+				 */
+				void materialChanged(Renderer* renderer, Material* oldMat, Material* newMat);
 			protected:
 				/**
 				 * Gets the material data that's linked to the given material. 

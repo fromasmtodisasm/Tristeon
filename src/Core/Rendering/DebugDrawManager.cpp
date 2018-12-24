@@ -1,6 +1,4 @@
 ﻿#include "DebugDrawManager.h"
-#include <cmath>
-#include <glm/gtc/constants.inl>
 
 namespace Tristeon
 {
@@ -50,7 +48,7 @@ namespace Tristeon
 
 			void DebugDrawManager::addSphere(const Math::Vector3& center, float r, float lineWidth, const Misc::Color& color, int circles, int resolution)
 			{
-				float const PI = 3.14159265f;
+				static float const PI = 3.14159265f;
 				std::vector<Math::Vector3> positions;
 
 				//Horizontal lines
@@ -78,8 +76,8 @@ namespace Tristeon
 					//Apply
 					for (int i = 0; i < positions.size(); i += 1)
 					{
-						Math::Vector3 start = positions[i];
-						Math::Vector3 end = (i + 1) >= positions.size() ? positions[0] : positions[i + 1];
+						Math::Vector3 const start = positions[i];
+						Math::Vector3 const end = (i + 1) >= positions.size() ? positions[0] : positions[i + 1];
 						Line const l = Line(start, end, lineWidth, color);
 						instance->drawList.push(l);
 					}
@@ -91,9 +89,9 @@ namespace Tristeon
 				{
 					for (float i = 0; i < 2 * PI; i += PI / resolution) 
 					{
-						float x = r*sin(i)*cos(j);
-						float y = r*cos(i);
-						float z = r*sin(j)*sin(i);
+						float const x = r*sin(i)*cos(j);
+						float const y = r*cos(i);
+						float const z = r*sin(j)*sin(i);
 						positions.push_back(center + Math::Vector3(x, y, z));
 					}
 				}
@@ -101,8 +99,8 @@ namespace Tristeon
 				//Apply
 				for (int i = 0; i < positions.size(); i += 1)
 				{
-					Math::Vector3 start = positions[i];
-					Math::Vector3 end = (i + 1) >= positions.size() ? positions[0] : positions[i + 1];
+					Math::Vector3 const start = positions[i];
+					Math::Vector3 const end = i + 1 >= positions.size() ? positions[0] : positions[i + 1];
 					Line const l = Line(start, end, lineWidth, color);
 					instance->drawList.push(l);
 				}

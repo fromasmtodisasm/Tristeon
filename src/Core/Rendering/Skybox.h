@@ -1,17 +1,10 @@
 ﻿#pragma once
-#include "Core/TObject.h"
+#include <Core/Rendering/Components/Renderer.h>
 #include <Editor/TypeRegister.h>
-#include <glm/mat4x4.hpp>
-#include "Data/Mesh.h"
+#include <Data/Mesh.h>
+#include <XPlatform/access.h>
 
-#ifdef TRISTEON_EDITOR
-namespace Tristeon {
-	namespace Editor {
-		class SkyboxFileItem;
-	}
-}
-#endif
-
+TRISTEON_FILE_TYPE_FORWARD(Skybox)
 
 namespace Tristeon
 {
@@ -19,20 +12,18 @@ namespace Tristeon
 	{
 		namespace Rendering
 		{
-			class Skybox : public TObject
+			class Skybox : public Renderer
 			{
-#ifdef TRISTEON_EDITOR
-				friend Editor::SkyboxFileItem;
-#endif
+				TRISTEON_FILE_TYPE(Skybox)
+
 			public:
 				Skybox();
 				virtual ~Skybox() = default;
+
 				nlohmann::json serialize() override;
 				void deserialize(nlohmann::json json) override;
-
 			protected:
-				virtual void init() { };
-				virtual void draw(glm::mat4 view, glm::mat4 proj) { };
+				void initInternalRenderer() override;
 
 				std::string texturePath;
 				bool isDirty = true;

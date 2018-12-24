@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <memory>
 
 /**
  * Should always be called in global namespace. Declares the make_unique function for unique pointers.
@@ -22,3 +21,26 @@
 		\
 		template<class _Ty, class... _Types, std::enable_if_t<!std::is_array_v<_Ty>, int>> \
 		_NODISCARD friend std::unique_ptr<_Ty> std::make_unique(_Types&&... _Args);
+
+namespace Tristeon {
+	namespace Scenes {
+		class SceneManager;
+		class Scene;
+	}
+}
+
+#if defined(TRISTEON_EDITOR)
+#define TRISTEON_FILE_TYPE_FORWARD(t) \
+	namespace Tristeon { \
+		namespace Editor { \
+			class ##t FileItem; \
+		} \
+	}
+
+#define TRISTEON_FILE_TYPE(t) \
+	friend ##t FileItem
+
+#else
+#define TRISTEON_FILE_TYPE_FORWARD(t)
+#define TRISTEON_FILE_TYPE(t)
+#endif

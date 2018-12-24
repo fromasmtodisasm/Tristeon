@@ -7,6 +7,7 @@ namespace Tristeon
 	{
 		namespace Rendering
 		{
+			class Renderer;
 			class ShaderFile;
 			class Material;
 			class RenderManager;
@@ -24,7 +25,7 @@ namespace Tristeon
 				 * Returns a cached value unless if the material hadn't been loaded in before.
 				 * \exception exception When the renderer is null. Only possible if a Graphics function is called from a static constructor.
 				 * \return The material object if found
-				 * \return nullptr if the material wasn't found
+				 * \return nullptr If the material wasn't found
 				 */
 				static Material* getMaterial(std::string filePath);
 
@@ -35,7 +36,20 @@ namespace Tristeon
 				 */
 				static void reflectShader(ShaderFile& file);
 
+				/**
+				 * Sets the materialsDirty flag. Which forces materials to be re-sorted based on their renderqueue.
+				 * \exception exception When the renderer is null. Only possible if a Graphics function is called from a static constructor.
+				 */
 				static void setMaterialsDirty();
+
+				/**
+				 * Re-adds the given renderer to the correct material queue.
+				 * \exception invalid_argument The passed renderer is null
+				 * \exception runtime_error Couldn't find material data for oldMat
+				 * \exception runtime_error Couldn't find material data for newMat
+				 * \exception exception When the renderer is null. Only possible if a Graphics function is called from a static constructor.
+				 */
+				static void materialChanged(Renderer* renderer, Material* oldMat, Material* newMat);
 			private:
 				static RenderManager* renderer;
 			};

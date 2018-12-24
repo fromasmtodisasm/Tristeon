@@ -3,8 +3,10 @@
 #include <Core/Message.h>
 #include <Core/MessageBus.h>
 #include <Core/Components/Camera.h>
+#include <Core/Rendering/Graphics.h>
+#include <Core/Rendering/Material.h>
+
 #include <boost/filesystem.hpp>
-#include "Graphics.h"
 
 namespace Tristeon
 {
@@ -34,6 +36,25 @@ namespace Tristeon
 			RenderManager::~RenderManager()
 			{
 				Graphics::renderer = nullptr;
+			}
+
+			void RenderManager::materialChanged(Renderer* renderer, Material* oldMat, Material* newMat)
+			{
+				if (renderer == nullptr)
+					throw std::invalid_argument("MaterialChanged called with renderer == nullptr!");
+
+				if (oldMat == newMat)
+					return;
+
+				MaterialData* data = find_if(materials.begin(), materials.end(), [&](std::unique_ptr<MaterialData>& i) { i.get()->material.get() == oldMat; })->get();
+				if (data == nullptr)
+					throw std::runtime_error("Couldn't find material data for material " + oldMat->name);
+				data->renderers.remove(renderer);
+
+				MaterialData* newData = find_if(materials.begin(), materials.end(), [&](std::unique_ptr<MaterialData>& i) { i.get()->material.get() == newMat; })->get();
+				if (newData == nullptr)
+					throw std::runtime_error("Couldn't find material data for material " + newMat->name);
+				data->renderers.push_back(renderer);
 			}
 
 			MaterialData* RenderManager::getMaterialData(Material* material)

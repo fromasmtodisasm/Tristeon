@@ -81,7 +81,7 @@ namespace Tristeon
 				if (texturePaths.find(name) != texturePaths.end())
 					texturePaths[name] = path;
 				else
-					Misc::Console::warning("Trying to set material texture [" + name + "] but that variable is not defined in shader.properties!");
+					throw std::invalid_argument("Trying to set material Texture [" + name + "] but that name is not linked to a texture!");
 			}
 
 			void Material::setFloat(std::string name, float value)
@@ -90,7 +90,7 @@ namespace Tristeon
 				if (floats.find(name) != floats.end())
 					floats[name] = value;
 				else
-					Misc::Console::warning("Trying to set material float [" + name + "] but that variable is not defined in shader.properties!");
+					Misc::Console::warning("Trying to set material float [" + name + "] but that name is not linked to a valid variable!");
 			}
 
 			void Material::setVector3(std::string name, Math::Vector3 value)
@@ -99,7 +99,7 @@ namespace Tristeon
 				if (vectors.find(name) != vectors.end())
 					vectors[name] = value;
 				else
-					Misc::Console::warning("Trying to set material vector [" + name + "] but that variable is not defined in shader.properties!");
+					Misc::Console::warning("Trying to set material Vector3 [" + name + "] but that name is not linked to a valid variable!");
 			}
 
 			void Material::setColor(std::string name, Misc::Color value)
@@ -108,7 +108,7 @@ namespace Tristeon
 				if (colors.find(name) != colors.end())
 					colors[name] = value;
 				else
-					Misc::Console::warning("Trying to set material color [" + name + "] but that variable is not defined in shader.properties!");
+					Misc::Console::warning("Trying to set material Color [" + name + "] but that name is not linked to a valid variable!");
 			}
 
 			void Material::updateShader()

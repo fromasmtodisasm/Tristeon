@@ -1,13 +1,11 @@
 ﻿#include "Window.h"
 
-#include "Core/UserPrefs.h"
+#include <Core/UserPrefs.h>
 #include <Core/MessageBus.h>
-#include "Core/Message.h"
+#include <Core/Message.h>
 
-#include "Math/Vector2.h"
-
-#include "Misc/Console.h"
-
+#include <Math/Vector2.h>
+#include <Misc/Console.h>
 #include <GLFW/glfw3.h>
 
 namespace Tristeon
@@ -25,10 +23,9 @@ namespace Tristeon
 
 			void Window::init()
 			{
-				//Error callback has to be set before anything else, to not miss out on potential early errors
 				glfwSetErrorCallback([](int error, const char* description) { Misc::Console::error("GLFW Error. Error code: " + std::to_string(error) + ". Description: " + description); });
-
 				glfwInit();
+
 				glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 				glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 				glfwWindowHint(GLFW_RESIZABLE, true);

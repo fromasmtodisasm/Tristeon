@@ -1,75 +1,63 @@
 ﻿#pragma once
-#include "Core/Rendering/Internal/InternalRenderer.h"
 #include "Core/Components/Component.h"
-#include "Core/Rendering/Material.h"
+#include <Core/Rendering/Graphics.h>
 
 namespace Tristeon
 {
-	namespace Scenes { class SceneManager; }
 	namespace Core
 	{
-		//Forward decl
 		class BindingData;
 		class MessageBus;
-
 		namespace Rendering
 		{
-			//Forward decl
+			class InternalRenderer;
 			class RenderManager;
+			class Material;
 
 			/**
-			 * \brief Renderer is the base class for all renderers in the engine. 
+			 * Renderer is the base class for all renderers in the engine.
+			 * It allows for objects to be displayed in-game/editor. 
 			 * It provides base functionality and wraps around a so called "InternalRenderer", 
 			 * which is designed to be created based on the current selected rendering API.
 			 */
 			class Renderer : public Components::Component
 			{
 				friend RenderManager;
-				friend Scenes::SceneManager;
 			public:
-				/**
-				 * \brief Render is the main rendering function of the renderer and calls internalRenderer.render(). It can be overriden if needed.
-				 */
-				virtual void render();
-				/**
-				 * \brief Deregisters the renderer from the rendering system
-				 */
 				~Renderer();
 				/**
-				 * \brief Registers the renderer to the rendering system 
+				 * Render is the main rendering function of the renderer and calls internalRenderer.render(). It can be overriden if needed.
 				 */
-				void init() override;
-				/**
-				 * \brief Creates and initializes the internal renderer
-				 */
-				virtual void initInternalRenderer() = 0;
+				virtual void render();
 
 				/**
-				* \brief The (shared) material of the renderer
+				* The (shared) material of the renderer. 
+				* Changing any properties of this material will also change the properties of any other renderer with this material.
 				*/
 				Property(Renderer, material, Material*);
 				GetProperty(material) { return _material; }
-				SetProperty(material) { _material = value; }
+				SetProperty(material) 
+				{ 
+					Material* old = _material; 
+					_material = value; 
+					Graphics::materialChanged(this, old, value); 
+				}
 
 				/**
-				 * \brief Gets the internal renderer
-				 * \return Returns the internal renderer
+				 * The internal renderer. Contains rendering API specific calls / data.
 				 */
-				InternalRenderer* getInternalRenderer() const { return renderer; }
+				ReadOnlyProperty(Renderer, internalRenderer, InternalRenderer*)
+				GetProperty(internalRenderer) { return _internalRenderer.get(); }
+
+				nlohmann::json serialize() override;
+				void deserialize(nlohmann::json json) override;
 			protected:
-				/**
-				 * \brief The Filepath of the material
-				 */
-				std::string materialPath;
-				/**
-				 * \brief The internal renderer, rendering API specific
-				 */
-				InternalRenderer* renderer = nullptr;
-				/**
-				 * \brief The material
-				 */
-				Material* _material = nullptr;
+				void init() override;
+				virtual void initInternalRenderer() = 0;
 
+				std::unique_ptr<InternalRenderer> _internalRenderer;
+				std::string materialPath;
+				Material* _material = nullptr;
 				bool registered = false;
 			};
 		}

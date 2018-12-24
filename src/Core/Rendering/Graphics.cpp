@@ -27,7 +27,18 @@ namespace Tristeon
 
 			void Graphics::setMaterialsDirty()
 			{
+				if (!renderer)
+					throw std::exception("The renderer is null upon calling Graphics::reflectShader()!");
+
 				renderer->setMaterialsDirty();
+			}
+
+			void Graphics::materialChanged(Renderer* pRenderer, Material* oldMat, Material* newMat)
+			{
+				if (!renderer)
+					throw std::exception("The renderer is null upon calling Graphics::reflectShader()!");
+
+				renderer->materialChanged(pRenderer, oldMat, newMat);
 			}
 		}
 	}

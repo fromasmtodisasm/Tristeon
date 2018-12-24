@@ -6,7 +6,7 @@ namespace Tristeon
 	{
 		namespace Rendering
 		{
-			InternalRenderer::InternalRenderer(Renderer* renderer) : renderer(renderer)
+			InternalRenderer::InternalRenderer(Renderer* pOwner) : owner(pOwner)
 			{
 				//Empty
 			}

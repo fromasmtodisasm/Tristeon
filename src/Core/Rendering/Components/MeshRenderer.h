@@ -1,8 +1,9 @@
 ﻿#pragma once
 #include "Renderer.h"
-#include "Data/Mesh.h"
-#include "Misc/Property.h"
-#include "Editor/TypeRegister.h"
+#include <Data/Mesh.h>
+#include <Misc/Property.h>
+#include <Editor/TypeRegister.h>
+#include <Core/Rendering/Internal/InternalRenderer.h>
 
 namespace Tristeon
 {
@@ -11,36 +12,28 @@ namespace Tristeon
 		namespace Rendering
 		{
 			/**
-			 * \brief The MeshRenderer component renders meshes
+			 * The MeshRenderer is a specification of Renderer.
+			 * It inherits all the features of Renderer, 
+			 * except it specifically displays a mesh in 3D space.
 			 */
 			class MeshRenderer : public Renderer
 			{
 			public:
-				/**
-				* \brief The Mesh of the meshrenderer
-				*/
 				Property(MeshRenderer, mesh, Data::SubMesh);
 				SetProperty(mesh)
 				{
 					_mesh = value;
-					if (renderer != nullptr)
-						renderer->onMeshChange(value);
+					if (_internalRenderer != nullptr)
+						_internalRenderer->onMeshChange(value);
 				}
 				GetProperty(mesh) { return _mesh; }
 				
-				/**
-				* \brief Creates and initializes the internal renderer
-				*/
 				void initInternalRenderer() override;
 
 				nlohmann::json serialize() override;
 				void deserialize(nlohmann::json json) override;
 			private:
-				/**
-				 * \brief The mesh of the meshrenderer
-				 */
 				Data::SubMesh _mesh;
-
 				std::string meshFilePath = "";
 				uint32_t subMeshID = 0;
 

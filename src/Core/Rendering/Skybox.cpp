@@ -1,7 +1,7 @@
 ﻿#include "Skybox.h"
-#include "Data/Mesh.h"
-#include "Data/MeshBatch.h"
-#include "XPlatform/typename.h"
+#include <Data/Mesh.h>
+#include <Data/MeshBatch.h>
+#include <XPlatform/typename.h>
 
 namespace Tristeon
 {
@@ -32,6 +32,11 @@ namespace Tristeon
 					isDirty = true;
 					texturePath = val;
 				}
+			}
+
+			void Skybox::initInternalRenderer()
+			{
+				//TODO: internalRenderer = std::make_unique<Vulkan::InternalSkyboxRenderer>();
 			}
 		}
 	}

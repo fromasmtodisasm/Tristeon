@@ -1,6 +1,7 @@
 ﻿#include "Renderer.h"
-#include "Core/Message.h"
-#include "Core/MessageBus.h"
+#include <Core/Message.h>
+#include <Core/MessageBus.h>
+#include <Core/Rendering/Internal/InternalRenderer.h>
 
 namespace Tristeon
 {
@@ -10,20 +11,31 @@ namespace Tristeon
 		{
 			void Renderer::render()
 			{
-				//Call rendering API specific render call
-				if (renderer != nullptr)
-					renderer->render();
+				if (_internalRenderer != nullptr)
+					_internalRenderer->render();
 			}
 
 			Renderer::~Renderer()
 			{
-				//Deregister ourselves
 				if (registered)
 					MessageBus::sendMessage({ MT_RENDERINGCOMPONENT_DEREGISTER, dynamic_cast<TObject*>(this) });
+			}
 
-				//Cleanup renderer
-				if (renderer != nullptr)
-					delete renderer;
+			nlohmann::json Renderer::serialize()
+			{
+				nlohmann::json j;
+				j["materialPath"] = materialPath;
+				return j;
+			}
+
+			void Renderer::deserialize(nlohmann::json json)
+			{
+				const std::string materialPathValue = json["materialPath"];
+				if (materialPath != materialPathValue)
+				{
+					material = Graphics::getMaterial(materialPathValue);
+					materialPath = materialPathValue;
+				}
 			}
 
 			void Renderer::init()

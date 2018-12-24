@@ -12,37 +12,24 @@ namespace Tristeon
 {
 	namespace Core
 	{
-		//Forward decl
 		class BindingData;
 
 		namespace Rendering
 		{
-			//Forward decl
 			class Renderer;
 
 			/**
-			 * \brief The internal renderer is an interface that is used to run 
-			 * API specific draw calls without interfering with the automatic component system.
-			 * It is generally used by the Renderer class / its subclasses.
+			 * The internal renderer is an interface that is used to run 
+			 * API specific draw calls without interfering with the automatically serialized component system.
 			 */
 			class InternalRenderer : public TObject
 			{
 			public:
-				InternalRenderer(Renderer* renderer);
-				/**
-				 * \brief The render call. In this call you can call draw calls to the API in inherited classes.
-				 */
+				InternalRenderer(Renderer* pOwner);
 				virtual void render() = 0;
-				/**
-				 * \brief Callback function for when the mesh has been changed
-				 * \param mesh The new mesh
-				 */
 				virtual void onMeshChange(Data::SubMesh mesh) {}
 			private:
-				/**
-				 * \brief The renderer this object is attached to
-				 */
-				Renderer* renderer;
+				Renderer* owner;
 			};
 		}
 	}
