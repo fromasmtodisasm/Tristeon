@@ -109,7 +109,7 @@ namespace Tristeon
 					 */
 					void updateProperties(bool updateResources) override;
 
-					void updateShader() override;
+					void resetShader() override;
 				private:
 					void setDefaults(std::string name, ShaderProperty prop);
 

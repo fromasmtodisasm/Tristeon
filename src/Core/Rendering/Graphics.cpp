@@ -40,6 +40,14 @@ namespace Tristeon
 
 				renderer->materialChanged(pRenderer, oldMat, newMat);
 			}
+
+			GraphicsState Graphics::getGraphicsState()
+			{
+				if (!renderer)
+					return INITIALIZING;
+
+				return renderer->graphicsState;
+			}
 		}
 	}
 }

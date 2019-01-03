@@ -70,29 +70,55 @@ namespace Tristeon
 
 				nlohmann::json serialize() override;
 				void deserialize(nlohmann::json json) override;
+
+				void resetProperties() { resetProperties(data); }
+
 			protected:
-				/**
-				 * OnRender function, override this function to send data to the shader. API specific.
-				 * \param model The transformation matrix of the object
-				 * \param view The current camera view matrix
-				 * \param proj The current camera projection matrix
-				 */
-				virtual void render(glm::mat4 model, glm::mat4 view, glm::mat4 proj) { }
+				struct MaterialData {
+					std::map<std::string, std::string> texturePaths;
+					std::map<std::string, Math::Vector3> vectors;
+					std::map<std::string, Misc::Color> colors;
+					std::map<std::string, float> floats;
+
+					void clear()
+					{
+						texturePaths.clear();
+						vectors.clear();
+						colors.clear();
+						floats.clear();
+					}
+				} data;
+
 
 				/**
-				 * Used to rebuild the shader pipeline and update our properties when we've changed ShaderFile
+				 * Pre render material is called before any object with this material is rendered. 
+				 * Override this to send material data to the GPU.
 				 */
-				virtual void updateProperties(bool updateResources = true) { }
+				virtual void preRenderMaterial() = 0;
+				/**
+				 * Post render material is called after all objects with this material have been rendered.
+				 * Override this to clear any render state / information that has been set regarding this material.
+				 */
+				virtual void postRenderMaterial() = 0;
+				/**
+				 * Pre render object is called before an object with this material is being rendered.
+				 * Override this to send the object's transform data to the shader.
+				 */
+				virtual void preRenderObject(glm::mat4 model, glm::mat4 view, glm::mat4 proj) = 0;
+				/**
+				 * Post render object is called after an object with this material was rendered.
+				 * Override this to clear any render state / information that has been set regarding said object.
+				 */
+				virtual void postRenderObject() = 0;
 
-				virtual void updateShader();
+				virtual void resetShader();
+				virtual void resetProperties(MaterialData serializedData);
+				virtual void resetResources() = 0;
 
-				std::unique_ptr<ShaderFile> shader;
-				std::map<std::string, std::string> texturePaths;
-				std::map<std::string, Math::Vector3> vectors;
-				std::map<std::string, Misc::Color> colors;
-				std::map<std::string, float> floats;
+				ShaderFile shader;
+
 			private:
-				void checkProperty(std::string parentName, ShaderProperty prop, const std::map<std::string, std::string>& tex, const std::map<std::string, Math::Vector3>& vec, const std::map<std::string, Misc::Color>& col, const std::map<std::string, float>& fl);
+				void registerProperties(std::string parentName, vector<ShaderProperty> prop, MaterialData serializedData);
 				std::string shaderFilePath;
 				int renderqueue = 0;
 

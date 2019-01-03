@@ -12,6 +12,14 @@ namespace Tristeon
 			class Material;
 			class RenderManager;
 
+			enum GraphicsState
+			{
+				INITIALIZING,
+				IDLING,
+				RENDERING,
+				TERMINATING
+			};
+
 			/**
 			 * Static API for interacting with the rendering/graphics backend of Tristeon.
 			 * Should never be used from a static constructor.
@@ -50,6 +58,8 @@ namespace Tristeon
 				 * \exception exception When the renderer is null. Only possible if a Graphics function is called from a static constructor.
 				 */
 				static void materialChanged(Renderer* renderer, Material* oldMat, Material* newMat);
+
+				static GraphicsState getGraphicsState();
 			private:
 				static RenderManager* renderer;
 			};

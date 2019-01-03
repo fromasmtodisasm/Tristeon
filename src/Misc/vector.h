@@ -27,6 +27,8 @@ namespace Tristeon
 		 * Removes the item at i from the vector
 		 */
 		void removeAt(size_t i);
+
+		void operator=(const std::vector<_Ty, _Alloc>& other) { *this = vector(other); }
 	};
 
 	template <class _Ty, class _Alloc>

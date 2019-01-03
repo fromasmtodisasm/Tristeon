@@ -91,12 +91,13 @@ namespace Tristeon
 				{
 					recompileShader(file);
 
-					//TODO: Uncomment and friend
-					//if (materials[i]->material->shaderFilePath == file.getPath())
-					//{
-					//	materials[i]->material->updateShader(); //Redundant?
-					//	materials[i]->material->updateProperties(true); //Should be one call perhaps?
-					//}
+					if (materials[i]->material->shader == file)
+					{
+						//TODO: Check this
+						materials[i]->material->updateShader(); //Redundant?
+						materials[i]->material->updateProperties(); //Should be one call perhaps?
+						materials[i]->material->updateResources();
+					}
 				}
 			}
 
@@ -155,6 +156,12 @@ namespace Tristeon
 
 			void RenderManager::render()
 			{
+				graphicsState = RENDERING;
+
+				if (windowContext == nullptr)
+					return;
+
+				windowContext->prepareFrame();
 				onPreRender();
 
 				if (materialsDirty)
@@ -190,6 +197,9 @@ namespace Tristeon
 				}
 
 				onPostRender();
+				windowContext->finishFrame();
+
+				graphicsState = IDLING;
 			}
 		}
 	}

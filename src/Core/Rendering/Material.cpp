@@ -5,6 +5,13 @@
 #include <boost/filesystem.hpp>
 namespace filesystem = boost::filesystem;
 
+#define SERIALIZE_MAP(jsonName, keyType, valueType, map) for (auto& element : nlohmann::json::iterator_wrapper(jsonName)) \
+	{\
+		const keyType key = element.key(); \
+		const valueType value = element.value(); \
+		map[key] = value; \
+	}
+
 namespace Tristeon
 {
 	namespace Core
@@ -17,10 +24,10 @@ namespace Tristeon
 			{
 				nlohmann::json j;
 				j["typeID"] = TRISTEON_TYPENAME(Material);
-				j["texturePaths"] = texturePaths;
-				j["vectors"] = vectors;
-				j["colors"] = colors;
-				j["floats"] = floats;
+				j["texturePaths"] = data.texturePaths;
+				j["vectors"] = data.vectors;
+				j["colors"] = data.colors;
+				j["floats"] = data.floats;
 				j["shaderFilePath"] = shaderFilePath;
 				return j;
 			}
@@ -33,113 +40,97 @@ namespace Tristeon
 				if (shaderFilePath != shaderFilePathValue)
 				{
 					shaderFilePath = shaderFilePathValue;
-					updateShader();
-					//Update our info
-					updateProperties(false);
+					resetShader();
 				}
 
 				//If we don't have a shader there's also no material property data to deserialize
 				//(or at least we'll just assume so)
-				if (shader == nullptr)
+				if (shader.isEmpty)
 					return;
 
-				//Get texture paths map from json
-				const nlohmann::json& jtex = json["texturePaths"];
-				std::map<std::string, std::string> tex;
-				for (auto& element : nlohmann::json::iterator_wrapper(jtex))
-				{
-					const std::string val = element.value();
-					tex[element.key()] = val;
-				}
-
-				//Get vectors from json
-				const nlohmann::json& jvec = json["vectors"];
-				std::map<std::string, Math::Vector3> vec;
-				for (auto& element : nlohmann::json::iterator_wrapper(jvec))
-					vec[element.key()] = element.value();
-
-				//Get colors from json
-				const nlohmann::json& jcol = json["colors"];
-				std::map<std::string, Misc::Color> col;
-				for (auto& element : nlohmann::json::iterator_wrapper(jcol))
-					col[element.key()] = element.value();
-
-				//Get floats from json
-				std::map<std::string, float> const fl = json["floats"];
-
-				//Validate properties
-				for (auto const pair : shader->getProps())
-				{
-					ShaderProperty const p = pair.second;
-					checkProperty("", p, tex, vec, col, fl);
-				}
+				MaterialData serializedData{};
+				SERIALIZE_MAP(json["texturePaths"], std::string, std::string, serializedData.texturePaths);
+				SERIALIZE_MAP(json["vectors"], std::string, Math::Vector3, serializedData.vectors);
+				SERIALIZE_MAP(json["colors"], std::string, Misc::Color, serializedData.colors);
+				SERIALIZE_MAP(json["floats"], std::string, float, serializedData.floats);
+				resetProperties(serializedData);
 			}
 
 			void Material::setTexture(std::string name, std::string path)
 			{
-				//Validate if the property exists
-				if (texturePaths.find(name) != texturePaths.end())
-					texturePaths[name] = path;
+				if (data.texturePaths.find(name) != data.texturePaths.end())
+					data.texturePaths[name] = path;
 				else
 					throw std::invalid_argument("Trying to set material Texture [" + name + "] but that name is not linked to a texture!");
 			}
 
 			void Material::setFloat(std::string name, float value)
 			{
-				//Validate if the property exists
-				if (floats.find(name) != floats.end())
-					floats[name] = value;
+				if (data.floats.find(name) != data.floats.end())
+					data.floats[name] = value;
 				else
 					Misc::Console::warning("Trying to set material float [" + name + "] but that name is not linked to a valid variable!");
 			}
 
 			void Material::setVector3(std::string name, Math::Vector3 value)
 			{
-				//Validate if the property exists
-				if (vectors.find(name) != vectors.end())
-					vectors[name] = value;
+				if (data.vectors.find(name) != data.vectors.end())
+					data.vectors[name] = value;
 				else
 					Misc::Console::warning("Trying to set material Vector3 [" + name + "] but that name is not linked to a valid variable!");
 			}
 
 			void Material::setColor(std::string name, Misc::Color value)
 			{
-				//Validate if the property exists
-				if (colors.find(name) != colors.end())
-					colors[name] = value;
+				if (data.colors.find(name) != data.colors.end())
+					data.colors[name] = value;
 				else
 					Misc::Console::warning("Trying to set material Color [" + name + "] but that name is not linked to a valid variable!");
 			}
 
-			void Material::updateShader()
+			void Material::resetShader()
 			{
-				//Try to set it if possible
 				if (filesystem::exists(shaderFilePath) && filesystem::path(shaderFilePath).extension() == ".shader")
-					shader = std::unique_ptr<ShaderFile>(JsonSerializer::deserialize<ShaderFile>(shaderFilePath));
-				//Remove old shader
-				else
-					shader.reset();
+				{
+					ShaderFile* newShader = JsonSerializer::deserialize<ShaderFile>(shaderFilePath);
+					if (newShader == nullptr)
+					{
+						shader = ShaderFile();
+						return;
+					}
+
+					shader = *newShader;
+					delete newShader;
+				}
 			}
 
-			void Material::checkProperty(std::string parentName, ShaderProperty p, const std::map<std::string, std::string>& tex,
-				const std::map<std::string, Math::Vector3>& vec, const std::map<std::string, Misc::Color>& col,
-				const std::map<std::string, float>& fl)
+			void Material::resetProperties(MaterialData serializedData)
 			{
-				//Try to get data out of the given vectors,
-				//If we can't find it assign standard variable
-				std::string const name = parentName + p.name;
-				switch (p.valueType)
+				data.clear();
+
+				//Validate properties
+				if (!shader.isEmpty)
+					registerProperties("", shader.getProperties(), serializedData);
+
+				resetResources();
+			}
+
+			void Material::registerProperties(std::string parentName, vector<ShaderProperty> properties, MaterialData serializedData)
+			{
+				#define VALIDATE(map, def) map.find(name) != map.end() ? map.at(name) : def;
+
+				for (auto const p : properties)
 				{
-				case DT_Image: texturePaths[name] = tex.find(name) != tex.end() ? tex.at(name) : ""; break;
-				case DT_Color: colors[name] = col.find(name) != col.end() ? col.at(name) : Misc::Color(); break;
-				case DT_Float: floats[name] = fl.find(name) != fl.end() ? fl.at(name) : 0; break;
-				case DT_Vector3: vectors[name] = vec.find(name) != vec.end() ? vec.at(name) : Math::Vector3(); break;
-				case DT_Struct:
-				{
-					for (const auto c : p.children)
-						checkProperty(name + ".", c, tex, vec, col, fl);
-					break;
-				}
+					std::string const name = parentName + p.name;
+					switch (p.valueType)
+					{
+						case DT_Image: this->data.texturePaths[name] = VALIDATE(serializedData.texturePaths, ""); break;
+						case DT_Color: this->data.colors[name] = VALIDATE(serializedData.colors, Misc::Color()); break;
+						case DT_Float: this->data.floats[name] = VALIDATE(serializedData.floats, 0); break;
+						case DT_Vector3: this->data.vectors[name] = VALIDATE(serializedData.vectors, Math::Vector3()); break;
+						case DT_Struct: registerProperties(name + ".", p.children, serializedData); break;
+						default: break;
+					}
 				}
 			}
 		}

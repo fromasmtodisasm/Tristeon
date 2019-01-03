@@ -216,9 +216,9 @@ namespace Tristeon
 					}
 				}
 
-				void Material::updateShader()
+				void Material::resetShader()
 				{
-					Rendering::Material::updateShader();
+					Rendering::Material::resetShader();
 					if (shader == nullptr)
 						return;
 					pipeline = RenderManager::getPipeline(*shader.get());

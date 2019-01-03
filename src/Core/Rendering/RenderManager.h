@@ -2,6 +2,8 @@
 #include <Misc/vector.h>
 #include <Core/Rendering/ShaderFile.h>
 #include <Core/TObject.h>
+#include <Core/Rendering/API/WindowContext.h>
+#include <Core/Rendering/Graphics.h>
 
 namespace Tristeon
 {
@@ -65,6 +67,7 @@ namespace Tristeon
 
 			class RenderManager
 			{
+				friend Graphics;
 			public:
 				/**
 				 * Registers the rendermanager to the MessageBus callbacks
@@ -125,6 +128,10 @@ namespace Tristeon
 				vector<Renderer*> looseRenderers;	
 
 				bool inPlayMode = true;
+
+				std::unique_ptr<WindowContext> windowContext;
+
+				GraphicsState graphicsState = INITIALIZING;
 			private:
 				void registerObject(Renderer* renderer);
 				void deregisterObject(Renderer* renderer);

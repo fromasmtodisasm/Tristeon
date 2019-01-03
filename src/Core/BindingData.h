@@ -4,6 +4,7 @@
 
 #include <vulkan/vulkan.hpp>
 #include "Rendering/Vulkan/HelperClasses/Swapchain.h"
+#include "Rendering/Vulkan/API/WindowContextVulkan.h"
 
 namespace Tristeon
 {
@@ -46,6 +47,8 @@ namespace Tristeon
 					instance = std::unique_ptr<BindingData>(new VulkanBindingData());
 				return dynamic_cast<VulkanBindingData*>(instance.get());
 			}
+
+			void readFromWindowContext(Rendering::Vulkan::WindowContextVulkan* context);
 
 			vk::PhysicalDevice physicalDevice;
 			vk::Device device;

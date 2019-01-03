@@ -83,6 +83,11 @@ namespace Tristeon
 				}
 				return properties;
 			}
+
+			bool ShaderFile::operator==(const ShaderFile& other)
+			{
+				return fragmentFilePath == other.fragmentFilePath && vertexFilePath == other.vertexFilePath;
+			}
 		}
 	}
 }

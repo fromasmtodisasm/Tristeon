@@ -43,7 +43,7 @@ namespace Tristeon
 
 			class PropertyAPIData { };
 			/**
-			 * A description runtime changeable property in a shader.
+			 * A description of a runtime changeable property in a shader.
 			 */
 			struct ShaderProperty
 			{
@@ -51,7 +51,7 @@ namespace Tristeon
 				DataType valueType;
 				ShaderStage shaderStage;
 				size_t size;
-				std::vector<ShaderProperty> children;
+				vector<ShaderProperty> children;
 				std::shared_ptr<PropertyAPIData> apiData; 
 
 				bool operator ==(const ShaderProperty& other) const
@@ -70,6 +70,14 @@ namespace Tristeon
 #endif
 			public:
 				/**
+				 * Creates an empty, invalid shaderfile. Can be used as a placeholder.
+				 */
+				ShaderFile() : ShaderFile("", "", "", "") { }
+
+				ShaderFile(const ShaderFile& other) = default;
+				void operator =(const ShaderFile& other) { *this = ShaderFile(other); }
+
+				/**
 				 * Creates a new shaderfile with the given data. Used for custom non-serialized shader files.
 				 * \param name The name ID of the shader.
 				 * \param directory The directory of the shader files.
@@ -87,6 +95,9 @@ namespace Tristeon
 				ReadOnlyProperty(ShaderFile, name, std::string)
 				GetProperty(name) { return nameID;}
 
+				ReadOnlyProperty(ShaderFile, isEmpty, bool)
+				GetProperty(isEmpty) { return nameID == "" && directory == "" && vertexName == "" && fragmentName == ""; }
+
 				nlohmann::json serialize() override;
 				void deserialize(nlohmann::json json) override;
 
@@ -95,6 +106,9 @@ namespace Tristeon
 				 * Returns an empty vector if the compilation fails.
 				 */
 				vector<ShaderProperty> getProperties();
+
+				bool operator ==(const ShaderFile& other);
+				bool operator !=(const ShaderFile& other) { return !operator==(other); }
 			private:
 				std::string getFilePath(std::string api, ShaderStage stage) const;
 				
