@@ -32,7 +32,7 @@ namespace Tristeon
 					pipeline = new Pipeline(file, bindingData->swapchain->extent2D, offscreenPass, true, vk::PrimitiveTopology::eLineList);
 
 					material = new Vulkan::Material();
-					material->pipeline = pipeline;
+					material->shaderPipeline = pipeline;
 					material->shader = std::make_unique<ShaderFile>(file);
 					material->updateProperties(true);
 
@@ -123,11 +123,11 @@ namespace Tristeon
 					secondary.setViewport(0, 1, &data->viewport);
 					secondary.setScissor(0, 1, &data->scissor);
 					//Pipeline
-					secondary.bindPipeline(vk::PipelineBindPoint::eGraphics, m->pipeline->getPipeline());
+					secondary.bindPipeline(vk::PipelineBindPoint::eGraphics, m->shaderPipeline->getPipeline());
 
 					//Descriptor sets
 					vk::DescriptorSet sets[] = { set, m->set };
-					secondary.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m->pipeline->getPipelineLayout(), 0, 2, sets, 0, nullptr);
+					secondary.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m->shaderPipeline->getPipelineLayout(), 0, 2, sets, 0, nullptr);
 
 					int i = 0;
 					while (!drawList.empty())

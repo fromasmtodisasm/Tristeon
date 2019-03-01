@@ -20,7 +20,7 @@ Tristeon::Core::Rendering::Vulkan::EditorGrid::EditorGrid(vk::RenderPass offscre
 	//Set up our material with our shader pipeline
 	material = new Material();
 	material->shader = std::make_unique<ShaderFile>(file);
-	material->pipeline = pipeline;
+	material->shaderPipeline = pipeline;
 	material->updateProperties(true);
 	material->setColor("Color.color", Misc::Color(1, 1, 1, 1));
 

@@ -73,14 +73,14 @@ namespace Tristeon
 					secondary.setViewport(0, 1, &data->viewport);
 					secondary.setScissor(0, 1, &data->scissor);
 					//Pipeline
-					secondary.bindPipeline(vk::PipelineBindPoint::eGraphics, vkm->pipeline->getPipeline());
+					secondary.bindPipeline(vk::PipelineBindPoint::eGraphics, vkm->shaderPipeline->getPipeline());
 
 					//Descriptor sets
 					std::vector<vk::DescriptorSet> sets = { set, vkm->set };
-					if (data->skyboxSet && vkm->pipeline->getEnableLighting())
+					if (data->skyboxSet && vkm->shaderPipeline->getEnableLighting())
 						sets.push_back(data->skyboxSet);
 
-					secondary.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkm->pipeline->getPipelineLayout(), 0, sets.size(), sets.data(), 0, nullptr);
+					secondary.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkm->shaderPipeline->getPipelineLayout(), 0, sets.size(), sets.data(), 0, nullptr);
 
 					//Vertex / index buffer
 					vk::Buffer vertexBuffers[] = { vertexBuffer->getBuffer() };

@@ -3,6 +3,7 @@
 #include "Serializable.h"
 #include "Misc/Console.h"
 #include "XPlatform/typename.h"
+#include "Core/UserPrefs.h"
 
 template <typename T> std::unique_ptr<IntrospectionInterface> CreateInstance() { return std::make_unique<T>(); }
 
@@ -50,11 +51,23 @@ struct DerivedRegister : TypeRegister
 	}
 };
 
+namespace Tristeon 
+{
+	namespace Core 
+	{
+		namespace Rendering
+		{
+			class Renderer;
+			namespace Vulkan { class Renderer; }
+		}
+	}
+}
+
 /**
  * \brief Creates a variable called reg using derivedregister, this is needed to register the type into the typeregister
  */
 #define REGISTER_TYPE_H(t) static DerivedRegister<t> reg;
-/**
- * \brief Creates the static instance of the derived register which registers the type into the typeregister
- */
+ /**
+  * \brief Creates the static instance of the derived register which registers the type into the typeregister
+  */
 #define REGISTER_TYPE_CPP(t) DerivedRegister<t> t::reg;

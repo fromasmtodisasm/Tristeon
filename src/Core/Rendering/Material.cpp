@@ -69,7 +69,7 @@ namespace Tristeon
 				if (data.floats.find(name) != data.floats.end())
 					data.floats[name] = value;
 				else
-					Misc::Console::warning("Trying to set material float [" + name + "] but that name is not linked to a valid variable!");
+					throw std::invalid_argument("Trying to set material float [" + name + "] but that name is not linked to a valid variable!");
 			}
 
 			void Material::setVector3(std::string name, Math::Vector3 value)
@@ -77,7 +77,7 @@ namespace Tristeon
 				if (data.vectors.find(name) != data.vectors.end())
 					data.vectors[name] = value;
 				else
-					Misc::Console::warning("Trying to set material Vector3 [" + name + "] but that name is not linked to a valid variable!");
+					throw std::invalid_argument("Trying to set material Vector3 [" + name + "] but that name is not linked to a valid variable!");
 			}
 
 			void Material::setColor(std::string name, Misc::Color value)
@@ -85,7 +85,7 @@ namespace Tristeon
 				if (data.colors.find(name) != data.colors.end())
 					data.colors[name] = value;
 				else
-					Misc::Console::warning("Trying to set material Color [" + name + "] but that name is not linked to a valid variable!");
+					throw std::invalid_argument("Trying to set material Color [" + name + "] but that name is not linked to a valid variable!");
 			}
 
 			void Material::resetShader()
@@ -108,7 +108,6 @@ namespace Tristeon
 			{
 				data.clear();
 
-				//Validate properties
 				if (!shader.isEmpty)
 					registerProperties("", shader.getProperties(), serializedData);
 

@@ -11,6 +11,13 @@ namespace Tristeon
 	{
 		namespace Rendering
 		{
+			class MeshRenderer;
+			template<>
+			struct DerivedRegister<MeshRenderer> : TypeRegister
+			{
+				DerivedRegister();
+			};
+
 			/**
 			 * The MeshRenderer is a specification of Renderer.
 			 * It inherits all the features of Renderer, 
