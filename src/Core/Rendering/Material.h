@@ -89,7 +89,6 @@ namespace Tristeon
 					}
 				} data;
 
-
 				/**
 				 * Pre render material is called before any object with this material is rendered. 
 				 * Override this to send material data to the GPU.

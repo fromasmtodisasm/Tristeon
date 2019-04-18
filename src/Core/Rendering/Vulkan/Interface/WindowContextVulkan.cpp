@@ -46,7 +46,7 @@ namespace Tristeon
 					instance.destroy();
 				}
 
-				void WindowContextVulkan::prepareFrame()
+				void WindowContextVulkan::preRenderFrame()
 				{
 					//Request image
 					const vk::Result r = device.acquireNextImageKHR(swapchain->getSwapchain(), INT64_MAX, imageAvailable, nullptr, &imgIndex);
@@ -58,7 +58,7 @@ namespace Tristeon
 						Misc::Console::error("Failed to acquire swapchain image: " + to_string(r));
 				}
 
-				void WindowContextVulkan::finishFrame()
+				void WindowContextVulkan::postRenderFrame()
 				{
 					//Wait for the device to be finished submitting
 					device.waitIdle();

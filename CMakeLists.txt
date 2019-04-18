@@ -113,15 +113,19 @@ include_directories(${PROJECT_SOURCE_DIR}/external/gli)
 include_directories(${PROJECT_BINARY_DIR}/external/gli)
 
 #SPIRV-Cross
-add_subdirectory(external/spirv_cross)
+#add_subdirectory(external/spirv_cross)
 
-include_directories(${PROJECT_SOURCE_DIR}/external/spirv_cross/include)
-include_directories(${PROJECT_BINARY_DIR}/external/spirv_cross/include)
+#include_directories(${PROJECT_SOURCE_DIR}/external/spirv_cross/include)
+#include_directories(${PROJECT_BINARY_DIR}/external/spirv_cross/include)
 
 #Boost
 set(BOOST_URL "")
 set(BOOST_SOURCE ${PROJECT_SOURCE_DIR}/external/boost)
 add_subdirectory(external/boost-cmake)
+
+#Shader conductor
+cmake_policy(SET CMP0079 NEW)
+add_subdirectory(external/ShaderConductor)
 
 #Libraries
 macro(link_libs targetname)
@@ -136,6 +140,8 @@ macro(link_libs targetname)
 	target_link_libraries(${targetname} spirv-cross-glsl)
 	target_link_libraries(${targetname} spirv-cross-hlsl)
 	target_link_libraries(${targetname} spirv-cross-msl)
+	
+	target_link_libraries(${targetname} ShaderConductor)
 endmacro()
 
 if (MSVC)

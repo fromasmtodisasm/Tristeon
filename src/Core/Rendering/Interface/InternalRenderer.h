@@ -27,7 +27,8 @@ namespace Tristeon
 			public:
 				explicit InternalRenderer(Renderer* pOwner);
 				virtual void render() = 0;
-				virtual void onMeshChange(Data::SubMesh mesh) {}
+				virtual void onMeshChange(Data::SubMesh mesh) = 0;
+				virtual void onResize() = 0;
 			private:
 				Renderer* owner;
 			};

@@ -1,7 +1,7 @@
 ﻿#include "Renderer.h"
 #include <Core/Message.h>
 #include <Core/MessageBus.h>
-#include <Core/Rendering/Internal/InternalRenderer.h>
+#include "Core/Rendering/Interface/InternalRenderer.h"
 
 namespace Tristeon
 {
@@ -36,6 +36,11 @@ namespace Tristeon
 					material = Graphics::getMaterial(materialPathValue);
 					materialPath = materialPathValue;
 				}
+			}
+
+			void Renderer::onResize() const
+			{
+				_internalRenderer->onResize();
 			}
 
 			void Renderer::init()

@@ -14,6 +14,17 @@ namespace Tristeon
 				public:
 					void onPreRender() override;
 					void onPostRender() override;
+
+					struct OnscreenData
+					{
+					} onscreen;
+
+					struct OffscreenData
+					{
+						vk::CommandBuffer commandBuffer;
+						vk::Semaphore semaphore;
+					} offscreen;
+				private:
 				};
 			}
 		}

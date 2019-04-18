@@ -1,6 +1,5 @@
 ﻿#include "ShaderFile.h" 
 #include <Misc/Console.h>
-#include <Core/UserPrefs.h>
 #include <XPlatform/typename.h>
 #include <Core/Rendering/Graphics.h>
 

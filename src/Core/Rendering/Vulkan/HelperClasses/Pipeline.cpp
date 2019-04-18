@@ -148,7 +148,7 @@ namespace Tristeon
 					device.destroyDescriptorSetLayout(descriptorSetLayout3);
 					createDescriptorLayout(file.getProps());
 
-					rebuild(extent, renderpass);
+					onResize(extent, renderpass);
 				}
 
 				Pipeline::~Pipeline()
@@ -160,7 +160,7 @@ namespace Tristeon
 					cleanup();
 				}
 
-				void Pipeline::rebuild(vk::Extent2D extent, vk::RenderPass renderPass)
+				void Pipeline::onResize(vk::Extent2D extent, vk::RenderPass renderPass)
 				{
 					//Cleanup and then build again
 					cleanup();

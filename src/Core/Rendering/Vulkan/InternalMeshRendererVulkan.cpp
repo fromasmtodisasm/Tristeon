@@ -10,7 +10,6 @@
 
 #include "HelperClasses/Pipeline.h"
 #include "Core/GameObject.h"
-#include "API/BufferVulkan.h"
 
 namespace Tristeon
 {
@@ -43,58 +42,54 @@ namespace Tristeon
 
 				void InternalMeshRenderer::render()
 				{
+					//Check mesh
 					if (meshRenderer->mesh.get().vertices.size() == 0 || meshRenderer->mesh.get().indices.size() == 0)
 						return;
+
+					//Check buffers
 					if ((VkBuffer)vertexBuffer->getBuffer() == VK_NULL_HANDLE || (VkBuffer)indexBuffer->getBuffer() == VK_NULL_HANDLE)
 					{
 						Misc::Console::warning("Not rendering [" + meshRenderer->gameObject.get()->name + "] because either the vertex or index buffer hasn't been set up!");
 						return;
 					}
 
-					//Get our material, and render it with the meshrenderer's model matrix
-					Rendering::Material* m = meshRenderer->material.get();
-					glm::mat4 const model = meshRenderer->transform.get()->getTransformationMatrix();
-
-					Vulkan::Material* vkm = dynamic_cast<Vulkan::Material*>(m);
-					if (vkm == nullptr)
-						return;
-					if ((VkDescriptorSet)set == VK_NULL_HANDLE || (VkDescriptorSet)vkm->set == VK_NULL_HANDLE)
+					//Check material
+					Material* material = dynamic_cast<Material*>(meshRenderer->material.get());
+					if (material == nullptr)
 						return;
 
-					vkm->setActiveUniformBufferMemory(uniformBuffer->getDeviceMemory());
-					vkm->render(model, data->view, data->projection);
+					//Check material descriptors
+					if ((VkDescriptorSet)set == VK_NULL_HANDLE || (VkDescriptorSet)material->set == VK_NULL_HANDLE)
+						return;
+
+					//Bind material data
+					material->bindInstanceMemory(uniformBuffer->getDeviceMemory());
 
 					//Start secondary cmd buffer
 					const vk::CommandBufferBeginInfo beginInfo = vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eRenderPassContinue, &data->inheritance);
 					vk::CommandBuffer secondary = cmd;
-					secondary.begin(beginInfo);
 
-					//Viewport/scissor
+					secondary.begin(beginInfo);
 					secondary.setViewport(0, 1, &data->viewport);
 					secondary.setScissor(0, 1, &data->scissor);
-					//Pipeline
-					secondary.bindPipeline(vk::PipelineBindPoint::eGraphics, vkm->shaderPipeline->getPipeline());
+					secondary.bindPipeline(vk::PipelineBindPoint::eGraphics, material->getPipeline()->getPipeline());
 
 					//Descriptor sets
-					std::vector<vk::DescriptorSet> sets = { set, vkm->set };
-					if (data->skyboxSet && vkm->shaderPipeline->getEnableLighting())
+					std::vector<vk::DescriptorSet> sets = { set, material->getDescriptorSet() };
+					if (data->skyboxSet && material->getPipeline()->getEnableLighting())
 						sets.push_back(data->skyboxSet);
 
-					secondary.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vkm->shaderPipeline->getPipelineLayout(), 0, sets.size(), sets.data(), 0, nullptr);
+					secondary.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, material->getPipeline()->getPipelineLayout(), 0, sets.size(), sets.data(), 0, nullptr);
 
-					//Vertex / index buffer
+					//Bind buffers
 					vk::Buffer vertexBuffers[] = { vertexBuffer->getBuffer() };
 					vk::DeviceSize offsets[1] = { 0 };
 					secondary.bindVertexBuffers(0, 1, vertexBuffers, offsets);
 					secondary.bindIndexBuffer(indexBuffer->getBuffer(), 0, vk::IndexType::eUint16);
 
-					//Line width
+					//Draw and finish
 					secondary.setLineWidth(2);
-
-					//Draw
 					secondary.drawIndexed(meshRenderer->mesh.get().indices.size(), 1, 0, 0, 0);
-
-					//Stop secondary cmd buffer
 					secondary.end();
 
 					data->lastUsedSecondaryBuffer = cmd;

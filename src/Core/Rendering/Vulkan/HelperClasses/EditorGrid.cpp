@@ -84,5 +84,5 @@ void Tristeon::Core::Rendering::Vulkan::EditorGrid::rebuild(vk::RenderPass offsc
 {
 	//The pipeline has to be rebuilt the moment the swapchain changes,
 	//to fit the new swapchain/window size
-	pipeline->rebuild(VulkanBindingData::getInstance()->swapchain->extent2D, offscreenPass);
+	pipeline->onResize(VulkanBindingData::getInstance()->swapchain->extent2D, offscreenPass);
 }

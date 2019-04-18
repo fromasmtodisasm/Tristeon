@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <Core/Rendering/Material.h>
 #include <vulkan/vulkan.hpp>
-#include <Core/Rendering/Vulkan/API/BufferVulkan.h>
+#include "Interface/BufferVulkan.h"
 
 namespace Tristeon
 {
@@ -41,12 +41,21 @@ namespace Tristeon
 				{
 				public:
 					~Material();
+					Material(Pipeline* shaderPipeline, ShaderFile shader);
 
 					/**
 					 * Sets the texture property with the name [name] to the given Image.
 					 * \exception invalid_argument The shader does not have a texture named [name]
 					 */
 					void setTexture(std::string name, std::string path) override;
+
+					/**
+					 * Sets the device memory used for the transformation data of the current object
+					 */
+					void bindInstanceMemory(vk::DeviceMemory const& device_memory);
+
+					Pipeline* getPipeline() const { return shaderPipeline; }
+					vk::DescriptorSet getDescriptorSet() const { return set; }
 				protected:
 					void resetShader() override;
 

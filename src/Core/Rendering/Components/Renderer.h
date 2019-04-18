@@ -11,7 +11,6 @@ namespace Tristeon
 		namespace Rendering
 		{
 			class InternalRenderer;
-			class RenderManager;
 			class Material;
 
 			/**
@@ -22,7 +21,6 @@ namespace Tristeon
 			 */
 			class Renderer : public Components::Component
 			{
-				friend RenderManager;
 			public:
 				~Renderer();
 				/**
@@ -51,6 +49,8 @@ namespace Tristeon
 
 				nlohmann::json serialize() override;
 				void deserialize(nlohmann::json json) override;
+
+				void onResize() const;
 			protected:
 				void init() override;
 				virtual void initInternalRenderer() = 0;

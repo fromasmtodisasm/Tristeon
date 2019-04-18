@@ -91,7 +91,7 @@ namespace Tristeon
 					if (internalRenderers.size() == 0 && renderables.size() == 0)
 						return;
 					
-					windowContext->prepareFrame();
+					windowContext->preRenderFrame();
 
 					//Render scene
 					renderScene();
@@ -102,7 +102,7 @@ namespace Tristeon
 					//Submit frame
 					submitCameras();
 
-					windowContext->finishFrame();
+					windowContext->postRenderFrame();
 				}
 
 				Pipeline* RenderManager::getPipeline(ShaderFile file)
@@ -123,30 +123,6 @@ namespace Tristeon
 						file.hasVariable(2, 0, DT_Image, ST_Fragment));
 					rm->pipelines.push_back(p);
 					return p;
-				}
-
-				void RenderManager::renderScene()
-				{
-					if (!inPlayMode)
-					{
-#ifdef TRISTEON_EDITOR
-						//Render editor camera
-						glm::mat4 const view = Components::Camera::getViewMatrix(editor.trans);
-						glm::mat4 const proj = Components::Camera::getProjectionMatrix((float)editor.size.x / (float)editor.size.y, 60, 0.1f, 1000.0f);
-						technique->renderScene(view, proj, editor.cam, editorSkybox);
-#endif
-					}
-					else
-					{
-						//Render gameplay cameras
-						for (auto const cam : cameraData)
-						{
-							vk::Extent2D const extent = vkContext->getExtent();
-							glm::mat4 const view = cam.first->getViewMatrix();
-							glm::mat4 const proj = cam.first->getProjectionMatrix((float)extent.width / (float)extent.height);
-							technique->renderScene(view, proj, cam.second, cam.first->getSkybox());
-						}
-					}
 				}
 
 				RenderManager::~RenderManager()
@@ -223,129 +199,6 @@ namespace Tristeon
 						m.second->updateProperties();
 				}
 
-				void RenderManager::createDescriptorPool()
-				{
-					//UBO Buffer
-					vk::DescriptorPoolSize const poolUniform = vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, materials.size()*10 + 1000);
-					//Samplers
-					vk::DescriptorPoolSize const poolSampler = vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, materials.size() + 1000);
-
-					//Create pool
-					std::array<vk::DescriptorPoolSize, 2> poolSizes = { poolUniform, poolSampler };
-					vk::DescriptorPoolCreateInfo poolInfo = vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, materials.size() + 1000*11, poolSizes.size(), poolSizes.data());
-					vk::Result const r = vkContext->getDevice().createDescriptorPool(&poolInfo, nullptr, &descriptorPool);
-					Console::t_assert(r == vk::Result::eSuccess, "Failed to create descriptor pool: " + to_string(r));
-					
-					//Store data
-					VulkanBindingData::getInstance()->descriptorPool = descriptorPool;
-				}
-
-				void RenderManager::submitCameras()
-				{
-					vk::Semaphore imgav = vkContext->getImageAvailable();
-
-					//Wait till present queue is ready to receive more commands
-					vkContext->getPresentQueue().waitIdle();
-					vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-
-					CameraRenderData* last = nullptr;
-					if (inPlayMode)
-					{
-						//Submit cameras
-						for (const auto p : cameraData)
-						{
-							CameraRenderData* c = p.second;
-							vk::Semaphore wait = last == nullptr ? imgav : last->offscreen.sema;
-							vk::SubmitInfo s = vk::SubmitInfo(1, &wait, waitStages, 1, &c->offscreen.cmd, 1, &c->offscreen.sema );
-							vkContext->getGraphicsQueue().submit(1, &s, nullptr);
-							last = c;
-						}
-					}
-					else
-					{
-#ifdef TRISTEON_EDITOR
-						//Submit editor camera
-						CameraRenderData* c = editor.cam;
-						if (c != nullptr)
-						{
-							vk::Semaphore wait = imgav;
-							vk::SubmitInfo s = vk::SubmitInfo(1, &wait, waitStages, 1, &c->offscreen.cmd, 1, &c->offscreen.sema);
-							vkContext->getGraphicsQueue().submit(1, &s, nullptr);
-							last = c;
-						}
-#endif
-					}
-					
-					//Submit onscreen
-					vk::Semaphore renderFinished = vkContext->getRenderFinished();
-					vk::SubmitInfo s2 = vk::SubmitInfo(
-						1, last == nullptr ? &imgav : &last->offscreen.sema,
-						waitStages, 
-						1, &primaryCmd, 
-						1, &renderFinished);
-					vkContext->getGraphicsQueue().submit(1, &s2, nullptr); 
-				}
-
-				void RenderManager::prepareOnscreenPipeline()
-				{
-					ShaderFile file = ShaderFile("Screen", "Files/Shaders/", "ScreenV", "ScreenF");
-					onscreenPipeline = new Pipeline(file, vkContext->getExtent(), vkContext->getRenderpass(), false, vk::PrimitiveTopology::eTriangleList, false, vk::CullModeFlagBits::eFront);
-				}
-
-				void RenderManager::prepareOffscreenPass()
-				{
-					//Color attachment 
-					vk::AttachmentDescription const color = vk::AttachmentDescription({},
-						vk::Format::eR8G8B8A8Unorm,
-						vk::SampleCountFlagBits::e1,
-						vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-						vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
-						vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal);
-
-					//The offscreen pass renders 3D data and as such it uses a depth buffer
-					vk::AttachmentDescription const depth = vk::AttachmentDescription({},
-						VulkanFormat::findDepthFormat(vkContext->getGPU()),
-						vk::SampleCountFlagBits::e1,
-						vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare,
-						vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
-						vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-
-					//Attachments
-					std::array<vk::AttachmentDescription, 2> attachmentDescr = { color, depth };
-					vk::AttachmentReference colorRef = vk::AttachmentReference(0, vk::ImageLayout::eColorAttachmentOptimal);
-					vk::AttachmentReference depthRef = vk::AttachmentReference(1, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-
-					//Subpass takes the references to our attachments
-					vk::SubpassDescription subpass = vk::SubpassDescription({}, vk::PipelineBindPoint::eGraphics,
-						0, nullptr,
-						1, &colorRef,
-						nullptr, &depthRef,
-						0, nullptr);
-
-					//Dependencies
-					std::array<vk::SubpassDependency, 2> dependencies = {
-						vk::SubpassDependency(
-							VK_SUBPASS_EXTERNAL, 0,
-							vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-							vk::AccessFlagBits::eMemoryRead, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
-							vk::DependencyFlagBits::eByRegion),
-
-						vk::SubpassDependency(
-							0, VK_SUBPASS_EXTERNAL,
-							vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe,
-							vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eMemoryRead,
-							vk::DependencyFlagBits::eByRegion)
-					};
-
-					//Create the renderpass
-					vk::RenderPassCreateInfo const rp = vk::RenderPassCreateInfo({},
-						attachmentDescr.size(), attachmentDescr.data(),
-						1, &subpass,
-						dependencies.size(), dependencies.data()
-					);
-					offscreenPass = vkContext->getDevice().createRenderPass(rp);
-				}
-
 				Rendering::Skybox* RenderManager::_getSkybox(std::string filePath)
 				{
 					if (filePath == "")
@@ -378,95 +231,6 @@ namespace Tristeon
 					}
 				}
 
-				TObject* RenderManager::registerRenderer(Message msg)
-				{
-					//Get and register internal renderer
-					TObject* o = Rendering::RenderManager::registerRenderer(msg);
-					Renderer* r = dynamic_cast<Renderer*>(o);
-					if (r != nullptr)
-					{
-						InternalRenderer* internal = r->getInternalRenderer();
-						InternalMeshRenderer* meshr = dynamic_cast<InternalMeshRenderer*>(internal);
-						Console::t_assert(meshr != nullptr, "Render Manager Vulkan received a Renderer with an internal renderer that hasn't been created for Vulkan!");
-						internalRenderers.push_back(meshr);
-					}
-
-					return o;
-				}
-
-				TObject* RenderManager::deregisterRenderer(Message msg)
-				{
-					//Get and deregister internal renderer
-					TObject* o = Rendering::RenderManager::deregisterRenderer(msg);
-					Renderer* r = dynamic_cast<Renderer*>(o);
-					if (r != nullptr)
-					{
-						InternalMeshRenderer* meshr = dynamic_cast<InternalMeshRenderer*>(r->getInternalRenderer());
-						internalRenderers.remove(meshr);
-					}
-					return o;
-				}
-
-				Components::Camera* RenderManager::registerCamera(Message msg)
-				{
-					//Base class registers the camera, we can create our respective data by using the resulting value of the base function
-					Components::Camera* cam = Rendering::RenderManager::registerCamera(msg);
-					
-					if (cam == nullptr)
-						return nullptr;
-
-					//Create camera render data
-					CameraRenderData* data = cameraDataPool.get();
-					data->tempName = "Camera: " + std::to_string(cameraData.size());
-					if (!data->getIsPrepared())
-						data->init(this, offscreenPass, onscreenPipeline);
-					else if (!data->isValid())
-						data->rebuild(this, offscreenPass, onscreenPipeline);
-
-					for (const auto pair : cameraData)
-					{
-						if (pair.second == data)
-							Misc::Console::error("Still have an old camera in here?!");
-					}
-					cameraData.insert(std::make_pair(cam, data));
-					
-					//For inherited classes
-					return cam;
-				}
-				
-				Components::Camera* RenderManager::deregisterCamera(Message msg)
-				{
-					//Base class deregisters the camera, we can delete our respective data by using the resulting value of the base function
-					Components::Camera* cam = Rendering::RenderManager::deregisterCamera(msg);
-
-					//Get our camera renderdata and erase it
-					CameraRenderData* data = cameraData[cam];
-					cameraData.erase(cameraData.find(cam));
-					cameraDataPool.release(data);
-					//For inherited classes
-					return cam;
-				}
-
-				void RenderManager::createCommandPool()
-				{
-					//Commandpool creation, requires the graphics family we're using
-					const QueueFamilyIndices indices = QueueFamilyIndices::get(vkContext->getGPU(), vkContext->getSurfaceKHR());
-					vk::CommandPoolCreateInfo ci = vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, indices.graphicsFamily);
-					const vk::Result r = vkContext->getDevice().createCommandPool(&ci, nullptr, &commandPool);
-					Console::t_assert(r == vk::Result::eSuccess, "Failed to create command pool: " + to_string(r));
-
-					//Store data
-					VulkanBindingData::getInstance()->commandPool = commandPool;
-				}
-
-				void RenderManager::createCommandBuffer()
-				{
-					//Create a commandbuffer for every framebuffer
-					vk::CommandBufferAllocateInfo alloc = vk::CommandBufferAllocateInfo(commandPool, vk::CommandBufferLevel::ePrimary, 1);
-					const vk::Result r = vkContext->getDevice().allocateCommandBuffers(&alloc, &primaryCmd);
-					Console::t_assert(r == vk::Result::eSuccess, "Failed to allocate command buffers: " + to_string(r)); 
-				}
-
 				void RenderManager::resizeWindow(int newWidth, int newHeight)
 				{
 					//Don't resize if the size is invalid
@@ -492,7 +256,7 @@ namespace Tristeon
 #endif
 					//Rebuild pipelines
 					for (int i = 0; i < pipelines.size(); i++)
-						pipelines[i]->rebuild(vkContext->getExtent(), offscreenPass);
+						pipelines[i]->onResize(vkContext->getExtent(), offscreenPass);
 
 					((DebugDrawManager*)DebugDrawManager::instance)->rebuild(offscreenPass);
 
@@ -502,34 +266,6 @@ namespace Tristeon
 					const auto end = skyboxes.end();
 					for (auto i = skyboxes.begin(); i != end; ++i)
 						((Skybox*)i->second.get())->rebuild(vkContext->getExtent(), offscreenPass);
-				}
-
-				vk::Framebuffer RenderManager::getActiveFrameBuffer() const
-				{
-					return vkContext->getActiveFramebuffer();
-				}
-
-				Rendering::Material* RenderManager::getmaterial(std::string filePath)
-				{
-					//Try to return the material from our batched materials
-					if (materials.find(filePath) != materials.end())
-						return materials[filePath];
-
-					//Don't even bother doing anything if the material doesn't exist
-					if (!filesystem::exists(filePath))
-						return nullptr;
-
-					//Our materials can only be .mat files
-					if (filesystem::path(filePath).extension() != ".mat")
-						return nullptr;
-					
-					Vulkan::Material* m = new Vulkan::Material();
-					m->deserialize(JsonSerializer::load(filePath));
-					
-					//Set up the material 
-					m->updateProperties(true);
-					materials[filePath] = m;
-					return m;
 				}
 			}
 		}

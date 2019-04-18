@@ -1,8 +1,9 @@
 ﻿#pragma once
-#include "Core/Rendering/API/WindowContext.h"
 #include <vulkan/vulkan.hpp>
-#include "Core/Rendering/Vulkan/API/Extensions/DebugReportCallbackEXT.h"
 #include <Core/Rendering/Vulkan/HelperClasses/Swapchain.h>
+#include "Core/Rendering/Interface/WindowContext.h"
+#include "Extensions/DebugReportCallbackEXT.h"
+
 namespace Tristeon
 {
 	namespace Core
@@ -19,8 +20,8 @@ namespace Tristeon
 				public:
 					explicit WindowContextVulkan(Vulkan::Window* window);
 					~WindowContextVulkan();
-					void prepareFrame() override;
-					void finishFrame() override;
+					void preRenderFrame() override;
+					void postRenderFrame() override;
 
 					vk::Instance getInstance() const { return instance; }
 					vk::SurfaceKHR getSurfaceKHR() const { return surface; }

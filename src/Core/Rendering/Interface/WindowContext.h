@@ -21,11 +21,11 @@ namespace Tristeon
 				/**
 				 * Prepares the next frame for rendering purposes.
 				 */
-				virtual void prepareFrame() = 0;
+				virtual void preRenderFrame() = 0;
 				/**
 				 * Finishes the current frame and instructs the GPU to display it if necessary.
 				 */
-				virtual void finishFrame() = 0;
+				virtual void postRenderFrame() = 0;
 				/**
 				 * Resizes its resources to the correct window size.
 				 */

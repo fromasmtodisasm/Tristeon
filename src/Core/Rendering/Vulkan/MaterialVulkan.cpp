@@ -25,6 +25,12 @@ namespace Tristeon
 
 				Material::~Material() { clearResources(); }
 
+				Material::Material(Pipeline* shaderPipeline, ShaderFile shader) : shaderPipeline(shaderPipeline)
+				{
+					this->shader = shader;
+					resetProperties();
+				}
+
 				void Material::render(glm::mat4 model, glm::mat4 view, glm::mat4 proj)
 				{
 					//TODO: This should be a separate function for recursiveness in structs and such

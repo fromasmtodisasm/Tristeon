@@ -5,13 +5,6 @@
 #include <boost/filesystem.hpp>
 namespace filesystem = boost::filesystem;
 
-#define SERIALIZE_MAP(jsonName, keyType, valueType, map) for (auto& element : nlohmann::json::iterator_wrapper(jsonName)) \
-	{\
-		const keyType key = element.key(); \
-		const valueType value = element.value(); \
-		map[key] = value; \
-	}
-
 namespace Tristeon
 {
 	namespace Core

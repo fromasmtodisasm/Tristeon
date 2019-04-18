@@ -1,6 +1,13 @@
 ﻿#pragma once
 #include <fstream>
 
+#define SERIALIZE_MAP(jsonName, keyType, valueType, map) for (auto& element : nlohmann::json::iterator_wrapper(jsonName)) \
+	{\
+		const keyType key = element.key(); \
+		const valueType value = element.value(); \
+		map[key] = value; \
+	}
+
 class JsonSerializer
 {
 public:

@@ -5,8 +5,10 @@
 #include <Core/Components/Camera.h>
 #include <Core/Rendering/Graphics.h>
 #include <Core/Rendering/Material.h>
-
 #include <boost/filesystem.hpp>
+#include "Core/Transform.h"
+#include "Window.h"
+#include "Core/BindingData.h"
 
 namespace Tristeon
 {
@@ -92,12 +94,7 @@ namespace Tristeon
 					recompileShader(file);
 
 					if (materials[i]->material->shader == file)
-					{
-						//TODO: Check this
-						materials[i]->material->updateShader(); //Redundant?
-						materials[i]->material->updateProperties(); //Should be one call perhaps?
-						materials[i]->material->updateResources();
-					}
+						materials[i]->material->resetProperties();
 				}
 			}
 
@@ -161,7 +158,7 @@ namespace Tristeon
 				if (windowContext == nullptr)
 					return;
 
-				windowContext->prepareFrame();
+				windowContext->preRenderFrame();
 				onPreRender();
 
 				if (materialsDirty)
@@ -178,6 +175,10 @@ namespace Tristeon
 					CameraData* camera = cameras[i].get();
 					camera->onPreRender();
 
+					Window* window = BindingData::getInstance()->tristeonWindow;
+					glm::mat4 const proj = camera->camera->getProjectionMatrix((float)window->width / (float)window->height);
+					glm::mat4 const view = camera->camera->getViewMatrix();
+
 					//Renderers without material get renderered separately
 					for(size_t j = 0; j < looseRenderers.size(); j++)
 						looseRenderers[j]->render();
@@ -186,9 +187,14 @@ namespace Tristeon
 					{
 						MaterialData* material = materials[i].get();
 						material->bind();
-						
+						material->setViewProjection(view, proj);
+
 						for (size_t k = 0; k < material->renderers.size(); k++)
+						{
+							glm::mat4 const model = material->renderers[i]->transform.get()->getTransformationMatrix();
+							material->setModelMatrix(model);
 							material->renderers[i]->render(); //Renderer manages its own transform
+						}
 
 						material->unBind();
 					}
@@ -197,7 +203,7 @@ namespace Tristeon
 				}
 
 				onPostRender();
-				windowContext->finishFrame();
+				windowContext->postRenderFrame();
 
 				graphicsState = IDLING;
 			}

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Core/Rendering/RenderManager.h"
-#include "API/WindowContextVulkan.h"
+#include "Interface/WindowContextVulkan.h"
 
 namespace Tristeon
 {
@@ -24,7 +24,6 @@ namespace Tristeon
 					std::unique_ptr<MaterialData> createMaterialData(std::unique_ptr<Rendering::Material> material) override;
 					std::unique_ptr<Rendering::Material> createMaterial(std::string filePath) override;
 					void resizeWindow(int w, int h) override;
-					void onPreRender() override;
 					void onPostRender() override;
 
 				private:
@@ -34,6 +33,8 @@ namespace Tristeon
 					void createOffscreenPass();
 					void createOnscreenPipeline();
 					void createPrimaryCommandBuffer();
+
+					void submitCameras();
 					WindowContextVulkan* context;
 
 					vk::DescriptorPool descriptorPool;

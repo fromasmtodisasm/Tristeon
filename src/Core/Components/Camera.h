@@ -3,6 +3,7 @@
 #include <glm/mat4x3.hpp>
 #include "Editor/TypeRegister.h"
 #include "Core/Rendering/Skybox.h"
+#include "Core/Rendering/Vulkan/NewRenderManagerVulkan.h"
 
 namespace Tristeon
 {
@@ -29,11 +30,12 @@ namespace Tristeon
 				float nearClippingPlane = 0.3f;
 				float farClippingPlane = 1000.0f;
 
+				bool runInEditorMode;
+
 				/**
 				* Defines if the camera is rendered to the screen or not
 				*/
 				SimpleReadOnlyProperty(Camera, offscreen, bool)
-
 				void setSkybox(std::string path);
 				Rendering::Skybox* getSkybox() const;
 

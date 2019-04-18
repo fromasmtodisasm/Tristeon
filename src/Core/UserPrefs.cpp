@@ -54,6 +54,7 @@ namespace Tristeon
 			//TODO: Load settings from settings file here
 			sUserPrefs["RENDERAPI"] = "VULKAN";
 			sUserPrefs["RENDERTECHNIQUE"] = "FORWARD";
+			sUserPrefs["PLATFORM"] = "WINDOWS";
 
 			bUserPrefs["FULLSCREEN"] = false;
 			iUserPrefs["SCREENWIDTH"] = 1920;

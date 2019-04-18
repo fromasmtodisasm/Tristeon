@@ -4,6 +4,7 @@
 #include "Core/BindingData.h"
 #include "HelperClasses/Pipeline.h"
 #include "Core/Components/Camera.h"
+#include "Interface/BufferVulkan.h"
 
 namespace Tristeon
 {
@@ -30,11 +31,7 @@ namespace Tristeon
 					//ShaderFile
 					file = ShaderFile("Line", "Files/Shaders/", "LineV", "LineF");
 					pipeline = new Pipeline(file, bindingData->swapchain->extent2D, offscreenPass, true, vk::PrimitiveTopology::eLineList);
-
-					material = new Vulkan::Material();
-					material->shaderPipeline = pipeline;
-					material->shader = std::make_unique<ShaderFile>(file);
-					material->updateProperties(true);
+					material = new Material(pipeline, file);
 
 					//Allocate command buffers
 					vk::CommandBufferAllocateInfo alloc = vk::CommandBufferAllocateInfo(bindingData->commandPool, vk::CommandBufferLevel::eSecondary, 1);
@@ -88,7 +85,7 @@ namespace Tristeon
 
 				void DebugDrawManager::rebuild(vk::RenderPass offscreenPass) const
 				{
-					pipeline->rebuild(VulkanBindingData::getInstance()->swapchain->extent2D, offscreenPass);
+					pipeline->onResize(VulkanBindingData::getInstance()->swapchain->extent2D, offscreenPass);
 				}
 
 				void DebugDrawManager::createVertexBuffer(Data::SubMesh mesh, int i)

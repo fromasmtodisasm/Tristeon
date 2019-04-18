@@ -46,7 +46,10 @@ namespace Tristeon
 				static void addSphere(const Math::Vector3& center, float radius, float lineWidth, const Misc::Color& color, int circles = 4, int resolution = 15);
 				
 				virtual ~DebugDrawManager() = default;
+
+				static void onResize() { instance->rebuild(); }
 			protected:
+				virtual void rebuild() = 0;
 				/**
 				 * The line struct describes a single renderable line, with a start, end, width and color defining its appearance and position.
 				 */

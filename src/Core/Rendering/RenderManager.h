@@ -2,8 +2,10 @@
 #include <Misc/vector.h>
 #include <Core/Rendering/ShaderFile.h>
 #include <Core/TObject.h>
-#include <Core/Rendering/API/WindowContext.h>
 #include <Core/Rendering/Graphics.h>
+#include "RenderData/MaterialData.h"
+#include "RenderData/CameraData.h"
+#include "Interface/WindowContext.h"
 
 namespace Tristeon
 {
@@ -14,56 +16,6 @@ namespace Tristeon
 		{
 			class Renderer; 
 			class Material;
-
-			/**
-			 * Base class for containing / using camera data and logic. 
-			 * Intended to be inherited by API specific classes.
-			 */
-			class CameraData : public TObject
-			{
-			public:
-				CameraData() = default;
-				virtual ~CameraData() = default;
-				explicit CameraData(Components::Camera* pCamera) : camera(pCamera) { }
-
-				/**
-				 * Called before the scene is rendered. Used to prepare the API for rendering, and to pass camera data to the GPU.
-				 */
-				virtual void onPreRender() = 0;
-				/**
-				 * Called after the scene is rendered. Used to allow the API to finish anything related to the camera
-				 */
-				virtual void onPostRender() = 0;
-
-				Components::Camera* camera = nullptr;
-			};
-
-			/**
-			 * Base class for containing / using material data and logic.
-			 * Intended to be inherited by API specific classes
-			 */
-			class MaterialData : public TObject
-			{
-			public:
-				MaterialData() = default;
-				virtual ~MaterialData() = default;
-				explicit MaterialData(std::unique_ptr<Material> pMaterial) {
-					material = move(pMaterial);
-				}
-
-				/**
-				 * Called before objects with this material are rendered. Used to send material data (textures, parameters, etc) to the GPU.
-				 */
-				virtual void bind() = 0;
-				/**
-				 * Called after the objects with this material have been rendered. Used to allow the material to clean up any data / renderstate it might've set.
-				 */
-				virtual void unBind() = 0;
-
-				std::unique_ptr<Material> material = nullptr;
-				std::string materialPath = "";
-				vector<Renderer*> renderers;
-			};
 
 			class RenderManager
 			{
@@ -137,7 +89,7 @@ namespace Tristeon
 				void deregisterObject(Renderer* renderer);
 				void registerObject(Components::Camera* camera);
 				void deregisterObject(Components::Camera* camera);
-				void render();
+				virtual void render();
 
 				bool materialsDirty = false;
 			};

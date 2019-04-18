@@ -4,12 +4,17 @@
 
 #include <vulkan/vulkan.hpp>
 #include "Rendering/Vulkan/HelperClasses/Swapchain.h"
-#include "Rendering/Vulkan/API/WindowContextVulkan.h"
 
 namespace Tristeon
 {
 	namespace Core
 	{
+		namespace Rendering {
+			namespace Vulkan {
+				class WindowContextVulkan;
+			}
+		}
+
 		/**
 		 * BindingData is used to share rendering data between engine subsystems. API specific binding data can inherit from this class.
 		 */

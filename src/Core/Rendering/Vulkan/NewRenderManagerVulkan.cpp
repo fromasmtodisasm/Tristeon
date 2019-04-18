@@ -6,12 +6,11 @@
 #include <Core/Rendering/Vulkan/RenderData/CameraDataVulkan.h>
 #include <Core/Rendering/Vulkan/RenderData/MaterialDataVulkan.h>
 
-#include <Core/Rendering/Vulkan/API/WindowContextVulkan.h>
-
 #include "HelperClasses/QueueFamilyIndices.h"
 #include "HelperClasses/VulkanFormat.h"
 #include "HelperClasses/Pipeline.h"
 #include "Editor/JsonSerializer.h"
+#include "DebugDrawManagerVulkan.h"
 
 namespace Tristeon
 {
@@ -53,17 +52,44 @@ namespace Tristeon
 					std::unique_ptr<Material> mat = std::unique_ptr<Material>(JsonSerializer::deserialize<Vulkan::Material>(filePath));
 					return move(mat);
 				}
-				
+
 				void NewRenderManager::resizeWindow(int w, int h)
 				{
-				}
+					if (w <= 0 || h <= 0)
+						return;
 
-				void NewRenderManager::onPreRender()
-				{
+					windowContext->resize(w, h);
+
+					vk::Device device = context->getDevice();
+
+					device.destroyRenderPass(offscreenPass);
+					createOffscreenPass();
+
+					//Resize materials
+					for (size_t i = 0; i < pipelines.size(); i++)
+						pipelines[i]->onResize(context->getExtent(), offscreenPass);
+
+					//Resize renderers
+					for(size_t i = 0; i < materials.size(); i++)
+						for (size_t j = 0; j < materials[i]->renderers.size(); j++)
+							materials[i]->renderers[j]->onResize();
+
+					for (size_t i = 0; i < looseRenderers.size(); i++)
+						looseRenderers[i]->onResize();
+
+					//Resize cameras
+					for (size_t i = 0; i < cameras.size(); i++)
+						cameras[i]->onResize();
+
+
+					DebugDrawManager::onResize();
+					
+					context->getSwapchain()->createFramebuffers();
 				}
 
 				void NewRenderManager::onPostRender()
 				{
+					submitCameras();
 				}
 
 				void NewRenderManager::initVulkan()
@@ -177,6 +203,38 @@ namespace Tristeon
 					vk::CommandBufferAllocateInfo alloc = vk::CommandBufferAllocateInfo(commandPool, vk::CommandBufferLevel::ePrimary, 1);
 					const vk::Result r = context->getDevice().allocateCommandBuffers(&alloc, &primaryCmd);
 					Misc::Console::t_assert(r == vk::Result::eSuccess, "Failed to allocate command buffers: " + to_string(r));
+				}
+
+				void NewRenderManager::submitCameras()
+				{
+					vk::Semaphore imageAvailable = context->getImageAvailable();
+
+					//Wait till present queue is ready to receive more commands
+					context->getPresentQueue().waitIdle();
+					vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+
+					CameraDataVulkan* last = nullptr;
+					//Submit cameras
+					for (const std::unique_ptr<CameraData> &p : cameras)
+					{
+						if (!inPlayMode && !p->camera->runInEditorMode)
+							continue;
+
+						CameraDataVulkan* c = dynamic_cast<CameraDataVulkan*>(p.get());
+						vk::Semaphore wait = last == nullptr ? imageAvailable : last->offscreen.semaphore;
+						vk::SubmitInfo s = vk::SubmitInfo(1, &wait, waitStages, 1, &c->offscreen.commandBuffer, 1, &c->offscreen.semaphore);
+						context->getGraphicsQueue().submit(1, &s, nullptr);
+						last = c;
+					}
+
+					//Submit onscreen
+					vk::Semaphore renderFinished = context->getRenderFinished();
+					vk::SubmitInfo s2 = vk::SubmitInfo(
+						1, last == nullptr ? &imageAvailable : &last->offscreen.semaphore,
+						waitStages,
+						1, &primaryCmd,
+						1, &renderFinished);
+					context->getGraphicsQueue().submit(1, &s2, nullptr);
 				}
 			}
 		}
